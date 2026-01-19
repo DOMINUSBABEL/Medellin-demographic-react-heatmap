@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -28,6 +28,10 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
     const result = await analyzeDemographics(selectedZone);
     setAiAnalysis(result);
     setIsLoadingAi(false);
+  };
+
+  const formatCOP = (val: number) => {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
   };
 
   const layers = [
@@ -93,9 +97,47 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.educationLevel}</span>
               </div>
             </div>
+            
+            {/* Economic Indicators Section */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp size={14} /> Indicadores Económicos
+                </h3>
+                
+                {/* Income */}
+                <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Ingreso Hogar (Prom.)</span>
+                    <span className="font-mono font-bold text-slate-800">{formatCOP(selectedZone.householdIncome)}</span>
+                </div>
+
+                {/* Employment Rate Bar */}
+                <div>
+                    <div className="flex justify-between text-xs mb-1">
+                        <span className="flex items-center gap-1 text-slate-600"><Briefcase size={12}/> Ocupación</span>
+                        <span className="font-semibold">{(selectedZone.employmentRate * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-1000" 
+                            style={{width: `${selectedZone.employmentRate * 100}%`}}
+                        ></div>
+                    </div>
+                </div>
+
+                {/* Internet Access */}
+                <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                    <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+                        <Wifi size={16} />
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 uppercase font-semibold">Conectividad</div>
+                        <div className="text-sm font-medium text-slate-900">{selectedZone.internetAccess}</div>
+                    </div>
+                </div>
+            </div>
 
             {/* Micro Chart */}
-            <div className="h-40 w-full bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="h-32 w-full bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                <ResponsiveContainer width="100%" height="100%">
                  <BarChart data={chartData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />

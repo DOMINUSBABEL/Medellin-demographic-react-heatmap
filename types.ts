@@ -18,7 +18,7 @@ export enum EducationLevel {
 
 export interface ZoneData {
   id: string;
-  locationName: string; // New field for Comuna/Barrio name
+  locationName: string;
   lat: number;
   lng: number;
   density: number; // 0-1 normalized
@@ -28,6 +28,11 @@ export interface ZoneData {
   educationLevel: EducationLevel;
   topInterest: SocialInterest;
   strata: number; // 1-6 Socio-economic strata in Colombia
+  
+  // New Demographics
+  householdIncome: number; // Monthly COP
+  employmentRate: number; // 0.0 to 1.0
+  internetAccess: string; // Type of connection
 }
 
 export enum MapLayer {

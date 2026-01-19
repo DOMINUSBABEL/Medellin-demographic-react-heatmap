@@ -6,8 +6,8 @@ import { generateMedellinData } from './services/dataService';
 import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
-  // Generate data once on mount
-  const data = useMemo(() => generateMedellinData(400), []);
+  // Increased data points to 800 for better coverage of all 16 comunas
+  const data = useMemo(() => generateMedellinData(800), []);
   
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
   const [selectedZone, setSelectedZone] = useState<ZoneData | null>(null);
