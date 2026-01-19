@@ -92,9 +92,10 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             }}
           >
             <Popup className="font-sans">
-              <div className="text-sm">
-                <strong className="block text-gray-800 text-lg mb-1">Zona {zone.id.split('-')[1]}</strong>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-gray-600">
+              <div className="text-sm min-w-[150px]">
+                <strong className="block text-gray-800 text-sm mb-1 uppercase tracking-wider">{zone.locationName}</strong>
+                <div className="border-t border-gray-200 my-1"></div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-gray-600 mt-2">
                     <span>Población:</span> <span className="font-medium text-gray-900">{zone.population}</span>
                     <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
                     <span>Estrato:</span> <span className="font-medium text-gray-900">{zone.strata}</span>

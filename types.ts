@@ -18,6 +18,7 @@ export enum EducationLevel {
 
 export interface ZoneData {
   id: string;
+  locationName: string; // New field for Comuna/Barrio name
   lat: number;
   lng: number;
   density: number; // 0-1 normalized

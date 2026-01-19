@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2 } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
       {/* Header */}
       <div className="p-6 bg-slate-900 text-white shadow-md">
         <h1 className="text-2xl font-bold tracking-tight">GeoMedellín</h1>
-        <p className="text-slate-400 text-sm mt-1">Analítica Demográfica Geoespacial</p>
+        <p className="text-slate-400 text-sm mt-1">Data Source: DANE & OSINT Reports</p>
       </div>
 
       {/* Layer Controls */}
@@ -80,10 +80,14 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
         {selectedZone ? (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-              <div className="flex justify-between items-baseline">
-                <h2 className="text-xl font-bold text-slate-800">Zona {selectedZone.id}</h2>
-                <span className="text-sm font-mono text-slate-500">{selectedZone.lat.toFixed(3)}, {selectedZone.lng.toFixed(3)}</span>
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-xs font-bold text-blue-600 uppercase tracking-wide flex items-center gap-1">
+                    <MapPin size={12} /> {selectedZone.locationName}
+                </span>
+                <span className="text-xs font-mono text-slate-400">ID: {selectedZone.id.split('-')[1]}</span>
               </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Detalle de Zona</h2>
+              
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.mainOccupation}</span>
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.educationLevel}</span>
@@ -112,7 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-indigo-900 font-semibold text-sm flex items-center gap-2">
                         <BrainCircuit size={16} />
-                        Análisis Sociológico (IA)
+                        Análisis Contextual (OSINT)
                     </h3>
                 </div>
                 
@@ -129,10 +133,10 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                         {isLoadingAi ? (
                             <>
                                 <Loader2 className="animate-spin" size={16} />
-                                Analizando...
+                                Procesando...
                             </>
                         ) : (
-                            "Generar Reporte con Gemini"
+                            "Consultar Base de Conocimiento"
                         )}
                     </button>
                 )}
@@ -142,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center space-y-4">
             <Users size={48} className="opacity-20" />
-            <p>Selecciona una zona en el mapa<br/>para ver detalles demográficos.</p>
+            <p>Selecciona una zona en el mapa<br/>para ver el reporte censal.</p>
           </div>
         )}
       </div>
@@ -153,7 +157,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
           onClick={onOpenPaper}
           className="w-full py-3 border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white rounded-lg font-bold transition-colors uppercase tracking-widest text-xs"
         >
-          Ver Documentación Técnica (arXiv)
+          Ver Documentación (arXiv)
         </button>
       </div>
     </div>

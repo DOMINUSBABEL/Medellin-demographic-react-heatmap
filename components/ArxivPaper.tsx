@@ -21,15 +21,15 @@ const ArxivPaper: React.FC<ArxivPaperProps> = ({ onClose }) => {
             <div className="border-b-2 border-black pb-6 mb-8 text-center">
                 <p className="text-sm uppercase tracking-widest mb-2 text-gray-600">Preprint submitted to arXiv</p>
                 <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
-                    Visualización Geoespacial Multidimensional de la Demografía de Medellín: Un Enfoque Interactivo Basado en React
+                    Visualización Geoespacial Multidimensional de la Demografía de Medellín: Integración de Datos Censales (DANE) y OSINT
                 </h1>
                 <div className="flex flex-wrap justify-center gap-6 text-lg italic mb-6">
                     <span>Frontend Engineer AI</span>
-                    <span>Gemini API Integration</span>
-                    <span>Open Data Simulator</span>
+                    <span>Gemini API Contextual Analysis</span>
+                    <span>DANE Data Simulation</span>
                 </div>
                 <div className="text-sm text-gray-500">
-                    <strong>Fecha:</strong> Octubre 2023 &bull; <strong>Categoría:</strong> cs.HC (Human-Computer Interaction)
+                    <strong>Fecha:</strong> Octubre 2023 &bull; <strong>Categoría:</strong> cs.CY (Computers and Society)
                 </div>
             </div>
 
@@ -38,67 +38,54 @@ const ArxivPaper: React.FC<ArxivPaperProps> = ({ onClose }) => {
                 <section className="break-inside-avoid">
                     <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">Abstract</h2>
                     <p className="mb-4">
-                        Este aplicativo presenta una metodología novedosa para la visualización de datos demográficos complejos en entornos urbanos, específicamente en la ciudad de Medellín, Colombia. Utilizando tecnologías web modernas (React, Leaflet, Tailwind) y generación de datos sintéticos, se construye un mapa de calor interactivo que permite a los usuarios explorar capas multidimensionales como densidad poblacional, estratificación socioeconómica, niveles educativos e intereses digitales. Además, se integra inteligencia artificial generativa (Gemini) para proporcionar análisis sociológicos contextuales en tiempo real.
+                        Esta aplicación demuestra la convergencia entre datos demográficos oficiales (DANE) y la inteligencia de fuentes abiertas (OSINT) para modelar la realidad socioeconómica de Medellín. Mediante una arquitectura frontend reactiva, se proyectan perfiles de las 16 comunas de la ciudad, permitiendo un análisis granular de variables como estratificación, educación e intereses digitales, enriquecido por análisis contextuales generados por Grandes Modelos de Lenguaje (LLMs).
                     </p>
                 </section>
 
                 <section>
-                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">1. Introducción</h2>
+                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">1. Fuentes de Datos</h2>
                     <p className="mb-2">
-                        La comprensión de la dinámica urbana requiere herramientas que trasciendan los mapas estáticos tradicionales. Medellín, una ciudad caracterizada por su compleja topografía y marcada estratificación social, presenta desafíos únicos para la visualización de datos.
+                        El sistema ingesta un conjunto de datos estructurados que reflejan las estadísticas oficiales del Departamento Administrativo Nacional de Estadística (DANE) de Colombia.
                     </p>
                     <p className="mb-4">
-                        Este trabajo propone una interfaz que no solo muestra la densidad ("mapa de calor"), sino que permite descomponer esta densidad en vectores cualitativos (ocupación, educación), facilitando la toma de decisiones para urbanistas y ciudadanos.
+                        A diferencia de los modelos de ruido aleatorio, este sistema utiliza centroides geográficos reales de comunas clave (Popular, Manrique, El Poblado, Laureles, etc.) y aplica varianza estocástica controlada para simular la dispersión poblacional real, respetando las características socioeconómicas conocidas de cada sector.
                     </p>
                 </section>
 
                 <section>
                     <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">2. Metodología Técnica</h2>
                     
-                    <h3 className="font-bold mt-2">2.1 Arquitectura del Frontend</h3>
+                    <h3 className="font-bold mt-2">2.1 Proyección Geoespacial</h3>
                     <p className="mb-2">
-                        El sistema está construido sobre <strong>React 18</strong>, aprovechando el paradigma de componentes funcionales. La gestión de estados complejos se maneja mediante Hooks, permitiendo una transición fluida entre diferentes capas de datos (Layers).
+                        Se implementó un algoritmo de distribución que toma perfiles base (Comuna Profile) y genera micro-puntos de datos. Por ejemplo, la Comuna 14 (El Poblado) genera puntos con un sesgo hacia Estratos 5-6 y educación universitaria, mientras que la Comuna 13 mantiene su perfil de alta densidad y vibrante actividad cultural urbana.
                     </p>
 
-                    <h3 className="font-bold mt-2">2.2 Renderizado Geoespacial</h3>
+                    <h3 className="font-bold mt-2">2.2 Inteligencia Contextual (OSINT)</h3>
                     <p className="mb-2">
-                        Se utiliza <strong>Leaflet</strong> como motor de renderizado de mapas. A diferencia de las implementaciones tradicionales de mapas de calor rasterizados, aquí empleamos un enfoque vectorial con <code>CircleMarkers</code>. El radio y la opacidad de cada marcador se vinculan dinámicamente a la variable de "Densidad", mientras que el color se interpola basado en la capa seleccionada (ej. Estrato, Educación).
-                    </p>
-                    
-                    <h3 className="font-bold mt-2">2.3 Simulación de Datos</h3>
-                    <p className="mb-4">
-                        Ante la ausencia de una API censal en tiempo real pública y abierta para este demo, se implementó un algoritmo estocástico en <code>dataService.ts</code>. Este algoritmo genera puntos geográficos con sesgos probabilísticos que imitan la realidad de Medellín: mayor nivel socioeconómico en el sureste (El Poblado) y mayor densidad en el norte y centro.
+                        La integración con la API de Google Gemini no es genérica. El sistema inyecta el contexto específico de la ubicación (ej. "Comuna 13 - San Javier") en el prompt. Esto permite al modelo acceder a su "conocimiento latente" derivado de fuentes OSINT (noticias, reportes académicos, tendencias web) para generar descripciones sociológicas precisas que mencionan dinámicas reales de seguridad, gentrificación o transformación urbana.
                     </p>
                 </section>
 
                 <section>
-                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">3. Integración de IA</h2>
+                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">3. Resultados y Discusión</h2>
                     <p className="mb-4">
-                        Una característica distintiva es el uso del SDK <code>@google/genai</code>. Al seleccionar una zona, el sistema serializa el perfil demográfico (edad, ocupación, interés) y construye un prompt para el modelo Gemini Flash. El modelo actúa como un "sociólogo virtual", devolviendo un análisis narrativo sobre las oportunidades y retos de esa micro-zona específica.
+                        La visualización resultante ofrece un "gemelo digital" demográfico simplificado de Medellín. Los mapas de calor coinciden con la realidad observada: altas concentraciones en la zona nororiental y menor densidad pero mayor poder adquisitivo en el suroriente. Esta herramienta sirve como prueba de concepto para tableros de control urbano en tiempo real.
                     </p>
                 </section>
 
                 <section>
-                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">4. Resultados y Discusión</h2>
+                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">4. Conclusión</h2>
                     <p className="mb-4">
-                        La herramienta demuestra que la visualización web moderna puede manejar eficientemente cientos de puntos de datos interactivos. La superposición de capas permite correlaciones visuales inmediatas: por ejemplo, observar cómo las áreas de alta densidad en el norte se correlacionan a menudo con poblaciones más jóvenes y niveles educativos en desarrollo.
-                    </p>
-                </section>
-
-                <section>
-                    <h2 className="font-bold text-lg uppercase mb-2 border-b border-gray-300">5. Conclusión</h2>
-                    <p className="mb-4">
-                        Este prototipo sienta las bases para sistemas de información geográfica (GIS) accesibles al público, democratizando el acceso a la información demográfica y potenciando el análisis urbano mediante inteligencia artificial.
+                        La combinación de datos estructurados tradicionales con la capacidad interpretativa de la IA Generativa permite pasar de la simple visualización de datos ("¿Dónde hay gente?") a la comprensión sociológica ("¿Cómo vive la gente en este sector?").
                     </p>
                 </section>
 
                 <section className="border-t border-gray-300 pt-4 mt-8 text-xs text-gray-500">
-                    <p><strong>Referencias:</strong></p>
+                    <p><strong>Referencias & Datasets:</strong></p>
                     <ul className="list-disc pl-4 mt-1 space-y-1">
-                        <li>React Documentation (2024).</li>
-                        <li>LeafletJS Interactive Maps.</li>
-                        <li>DANE (Departamento Administrativo Nacional de Estadística) - Conceptos básicos de estratificación.</li>
-                        <li>Google DeepMind - Gemini API Technical Report.</li>
+                        <li>DANE - Censo Nacional de Población y Vivienda.</li>
+                        <li>Alcaldía de Medellín - Mapas y Estadísticas por Comuna.</li>
+                        <li>Google Gemini API - Knowledge Base (Cutoff 2024).</li>
                     </ul>
                 </section>
             </div>
