@@ -6,8 +6,8 @@ import { generateMedellinData } from './services/dataService';
 import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
-  // Increased data points to 800 for better coverage of all 16 comunas
-  const data = useMemo(() => generateMedellinData(800), []);
+  // Increased data points to 1000 for high-resolution heatmap
+  const data = useMemo(() => generateMedellinData(1000), []);
   
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
   const [selectedZone, setSelectedZone] = useState<ZoneData | null>(null);
