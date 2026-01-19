@@ -1,0 +1,5 @@
+{
+  "name": "Medellín Demographics Heatmap",
+  "description": "An interactive geospatial visualization of Medellín's demographic distribution using synthetic data and AI-powered sociological analysis.",
+  "requestFramePermissions": []
+}
