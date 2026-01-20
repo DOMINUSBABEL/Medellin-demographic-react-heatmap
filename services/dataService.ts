@@ -56,11 +56,13 @@ class QuadtreeNode {
   bounds: BoundingBox;
   points: ZoneData[];
   children: QuadtreeNode[];
-  capacity: number;
+  maxPopulation: number;
+  currentPopulation: number;
 
-  constructor(bounds: BoundingBox, capacity: number) {
+  constructor(bounds: BoundingBox, maxPopulation: number) {
     this.bounds = bounds;
-    this.capacity = capacity;
+    this.maxPopulation = maxPopulation;
+    this.currentPopulation = 0;
     this.points = [];
     this.children = [];
   }
@@ -80,10 +82,10 @@ class QuadtreeNode {
     const midLat = (minLat + maxLat) / 2;
     const midLng = (minLng + maxLng) / 2;
 
-    const nw = new QuadtreeNode({ minLat: midLat, maxLat, minLng, maxLng: midLng }, this.capacity);
-    const ne = new QuadtreeNode({ minLat: midLat, maxLat, minLng: midLng, maxLng }, this.capacity);
-    const sw = new QuadtreeNode({ minLat, maxLat: midLat, minLng, maxLng: midLng }, this.capacity);
-    const se = new QuadtreeNode({ minLat, maxLat: midLat, minLng: midLng, maxLng }, this.capacity);
+    const nw = new QuadtreeNode({ minLat: midLat, maxLat, minLng, maxLng: midLng }, this.maxPopulation);
+    const ne = new QuadtreeNode({ minLat: midLat, maxLat, minLng: midLng, maxLng }, this.maxPopulation);
+    const sw = new QuadtreeNode({ minLat, maxLat: midLat, minLng, maxLng: midLng }, this.maxPopulation);
+    const se = new QuadtreeNode({ minLat, maxLat: midLat, minLng: midLng, maxLng }, this.maxPopulation);
 
     this.children = [nw, ne, sw, se];
   }
@@ -91,7 +93,7 @@ class QuadtreeNode {
   insert(point: ZoneData): boolean {
     if (!this.contains(point)) return false;
 
-    // If this node has children, try to insert into them
+    // If node is already subdivided, pass point to children
     if (this.children.length > 0) {
       for (const child of this.children) {
         if (child.insert(point)) return true;
@@ -99,18 +101,26 @@ class QuadtreeNode {
       return false;
     }
 
-    // Otherwise, add to this node
+    // Add point to this leaf node
     this.points.push(point);
+    this.currentPopulation += point.population;
 
-    // If capacity exceeded, subdivide and redistribute
-    if (this.points.length > this.capacity) {
+    // Check if Population threshold is exceeded (Demographic Balance)
+    // We check if current population exceeds threshold significantly (1.2x) to avoid over-splitting 
+    // nodes that are "just right", helping to keep population counts more uniform.
+    if (this.currentPopulation > (this.maxPopulation * 1.2) && this.points.length > 4) {
       this.subdivide();
+      
+      // Redistribute existing points to new children
       for (const p of this.points) {
         for (const child of this.children) {
           child.insert(p);
         }
       }
-      this.points = []; // Clear points from this node as they are now in children
+      
+      // Clear this node as it's no longer a leaf
+      this.points = [];
+      this.currentPopulation = 0;
     }
     return true;
   }
@@ -129,18 +139,30 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
   const points = node.points;
   const count = points.length;
   
-  // Calculate Averages / Modes
+  // Calculate Totals
+  const totalPopulation = points.reduce((sum, p) => sum + p.population, 0);
+  // Prevent division by zero if empty node
+  const safeCount = count || 1; 
+
   const sumIncome = points.reduce((sum, p) => sum + p.householdIncome, 0);
   const sumAge = points.reduce((sum, p) => sum + p.avgAge, 0);
   const sumStrata = points.reduce((sum, p) => sum + p.strata, 0);
   const sumEmployment = points.reduce((sum, p) => sum + p.employmentRate, 0);
-  const sumDensity = points.reduce((sum, p) => sum + p.density, 0);
 
-  // Find Mode for Location Name (Dominant Comuna in this specific grid cell)
+  // Calculate Real Density (People per Area Unit)
+  const width = node.bounds.maxLng - node.bounds.minLng;
+  const height = node.bounds.maxLat - node.bounds.minLat;
+  const area = width * height;
+  
+  // Normalization factor for visualization
+  // Adjusted for new population scales
+  const densityMetric = (totalPopulation / area) / 800000000; 
+
+  // Find Mode for Location Name
   const locations = points.map(p => p.locationName);
   const dominantLocation = locations.sort((a,b) =>
         locations.filter(v => v===a).length - locations.filter(v => v===b).length
-  ).pop() || "Zona Mixta";
+  ).pop() || "Zona Periférica";
 
   // Mode for Interests
   const interests = points.map(p => p.topInterest);
@@ -173,13 +195,13 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
     lng: (node.bounds.minLng + node.bounds.maxLng) / 2,
     bounds: [[node.bounds.minLat, node.bounds.minLng], [node.bounds.maxLat, node.bounds.maxLng]],
     
-    // Normalized density of the cell itself relative to point count
-    density: Math.min(1, (count / 15) * (sumDensity/count)), 
-    population: points.reduce((sum, p) => sum + p.population, 0),
-    avgAge: Math.round(sumAge / count),
-    strata: Math.round(sumStrata / count),
-    householdIncome: Math.round(sumIncome / count),
-    employmentRate: sumEmployment / count,
+    density: Math.min(1, densityMetric), 
+    
+    population: totalPopulation,
+    avgAge: Math.round(sumAge / safeCount),
+    strata: Math.round(sumStrata / safeCount),
+    householdIncome: Math.round(sumIncome / safeCount),
+    employmentRate: sumEmployment / safeCount,
     
     topInterest: dominantInterest,
     educationLevel: dominantEducation,
@@ -188,7 +210,7 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
   };
 };
 
-export const processQuadtree = (rawPoints: ZoneData[], capacity: number = 8): ZoneData[] => {
+export const processQuadtree = (rawPoints: ZoneData[], maxPopulationPerCell: number = 15000): ZoneData[] => {
   // 1. Determine Bounding Box of all points
   let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
   
@@ -208,13 +230,14 @@ export const processQuadtree = (rawPoints: ZoneData[], capacity: number = 8): Zo
     maxLng: maxLng + pad
   };
 
-  // 2. Build Tree
-  const qt = new QuadtreeNode(bounds, capacity);
+  // 2. Build Tree with Population Threshold
+  const qt = new QuadtreeNode(bounds, maxPopulationPerCell);
   rawPoints.forEach(p => qt.insert(p));
 
   // 3. Get Leaves and Aggregate
+  // Filter out leaves with 0 population (empty space) to clean up map
   const leaves = qt.getLeaves();
-  return leaves.map((node, i) => aggregateNodeData(node, i));
+  return leaves.map((node, i) => aggregateNodeData(node, i)).filter(z => z.population > 0);
 };
 
 
@@ -391,10 +414,10 @@ const COMUNA_PROFILES = [
   }
 ];
 
-export const generateMedellinData = (totalPoints: number = 2000): ZoneData[] => {
+export const generateMedellinData = (totalPoints: number = 10000): ZoneData[] => {
   const data: ZoneData[] = [];
-  // Ensure we have enough points per comuna to look good
-  const pointsPerComuna = Math.max(50, Math.floor(totalPoints / COMUNA_PROFILES.length));
+  // Increase point count significantly to allow fine-grained subdivision
+  const pointsPerComuna = Math.max(100, Math.floor(totalPoints / COMUNA_PROFILES.length));
 
   COMUNA_PROFILES.forEach((profile, profileIndex) => {
     for (let i = 0; i < pointsPerComuna; i++) {
@@ -432,13 +455,17 @@ export const generateMedellinData = (totalPoints: number = 2000): ZoneData[] => 
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       const internet = getInternetAccess(strata);
 
+      // MUCH smaller population per point to allow "fluid" aggregation
+      // ~400 people per point
+      const pointPopulation = Math.floor(profile.densityFactor * 400 * randomRange(0.8, 1.2));
+
       data.push({
         id: `z-${profileIndex}-${i}`,
         locationName: profile.name,
         lat: profile.lat + latOffset,
         lng: profile.lng + lngOffset,
         density: Math.min(1, Math.max(0, profile.densityFactor + (Math.random() - 0.5) * 0.1)),
-        population: Math.floor(profile.densityFactor * 8500 * randomRange(0.8, 1.2)),
+        population: pointPopulation,
         avgAge: Math.floor(age),
         strata,
         educationLevel: education,

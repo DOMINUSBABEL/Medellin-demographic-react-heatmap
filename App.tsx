@@ -7,12 +7,15 @@ import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
   // 1. Generate Raw Points (Simulated Individuals)
-  // We use more points now (2000) to ensure the Quadtree has enough data to make interesting shapes
-  const rawPoints = useMemo(() => generateMedellinData(2000), []);
+  // We use 12,000 points. Each point represents small cluster (~400 people).
+  const rawPoints = useMemo(() => generateMedellinData(12000), []);
   
   // 2. Process into Adaptive Grid (Quadtree Polygons)
-  // Capacity = 15 points per cell. Lower capacity = finer grid in dense areas.
-  const adaptiveGridData = useMemo(() => processQuadtree(rawPoints, 15), [rawPoints]);
+  // Target: ~20,000 inhabitants per grid cell.
+  // With 12,000 points * ~400 pop = ~4.8M total pop. 
+  // ~240 cells expected.
+  // The '1.2x' buffer in QuadtreeNode ensures we don't split 21k into tiny shards, keeping it closer to 20k.
+  const adaptiveGridData = useMemo(() => processQuadtree(rawPoints, 20000), [rawPoints]);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
