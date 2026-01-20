@@ -21,6 +21,9 @@ export interface ZoneData {
   locationName: string;
   lat: number;
   lng: number;
+  // New: Bounds for the Quadtree Rectangle [[lat1, lng1], [lat2, lng2]]
+  bounds?: [[number, number], [number, number]]; 
+  
   density: number; // 0-1 normalized
   population: number; // Est. count
   avgAge: number;

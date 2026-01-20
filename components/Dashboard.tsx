@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MapLayer, ZoneData } from '../types';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -11,9 +11,19 @@ interface DashboardProps {
   setActiveLayer: (layer: MapLayer) => void;
   selectedZone: ZoneData | null;
   onOpenPaper: () => void;
+  
+  // Filter Props
+  strataFilter: string;
+  setStrataFilter: (val: string) => void;
+  comunaFilter: string;
+  setComunaFilter: (val: string) => void;
+  comunaOptions: string[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, selectedZone, onOpenPaper }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+  activeLayer, setActiveLayer, selectedZone, onOpenPaper,
+  strataFilter, setStrataFilter, comunaFilter, setComunaFilter, comunaOptions
+}) => {
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
@@ -42,10 +52,63 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
     { id: MapLayer.Interest, label: 'Intereses Sociales', icon: Layers },
   ];
 
+  // Helper to calculate internet score for chart
+  const getInternetScore = (type: string) => {
+    if (type.includes('Fibra')) return 100;
+    if (type.includes('Alta')) return 80;
+    if (type.includes('HFC')) return 60;
+    if (type.includes('4G')) return 40;
+    return 20;
+  };
+
+  // Prepare data for the new comparative chart
+  const metricsData = useMemo(() => {
+    if (!selectedZone) return [];
+    
+    // Normalize Income to a 0-100 scale (Base: 15M COP for visualization purposes)
+    const incomeScore = Math.min(100, (selectedZone.householdIncome / 15000000) * 100);
+    
+    return [
+      { 
+        name: 'Ingreso (Norm)', 
+        value: incomeScore, 
+        originalValue: formatCOP(selectedZone.householdIncome),
+        fill: '#10b981' 
+      },
+      { 
+        name: 'Ocupación', 
+        value: selectedZone.employmentRate * 100, 
+        originalValue: `${(selectedZone.employmentRate * 100).toFixed(0)}%`,
+        fill: '#3b82f6' 
+      },
+      { 
+        name: 'Red (Calidad)', 
+        value: getInternetScore(selectedZone.internetAccess), 
+        originalValue: selectedZone.internetAccess,
+        fill: '#8b5cf6' 
+      },
+    ];
+  }, [selectedZone]);
+
+  // Mini Chart Data (Strata/Density)
   const chartData = selectedZone ? [
     { name: 'Estrato', value: selectedZone.strata, max: 6 },
     { name: 'Densidad', value: selectedZone.density * 10, max: 10 },
   ] : [];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-800 text-white text-xs p-2 rounded shadow-lg border border-slate-700">
+          <p className="font-bold mb-1">{label}</p>
+          <p className="text-emerald-400">
+            Valor: {payload[0].payload.originalValue || payload[0].value}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 border-r border-slate-200 shadow-xl z-20 w-full max-w-md overflow-y-auto">
@@ -55,23 +118,68 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
         <p className="text-slate-400 text-sm mt-1">Data Source: DANE & OSINT Reports</p>
       </div>
 
+      {/* FILTER SECTION */}
+      <div className="p-6 border-b border-slate-200 bg-white">
+        <h3 className="text-xs font-semibold uppercase text-slate-500 mb-4 tracking-wider flex items-center gap-2">
+          <Filter size={14} /> Filtros de Visualización
+        </h3>
+        
+        <div className="space-y-4">
+          {/* Strata Filter */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Rango de Estratos</label>
+            <div className="flex rounded-md shadow-sm" role="group">
+              {['all', '1-2', '3-4', '5-6'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setStrataFilter(filter)}
+                  className={`flex-1 px-3 py-2 text-xs font-medium border first:rounded-l-md last:rounded-r-md transition-colors ${
+                    strataFilter === filter
+                      ? 'bg-blue-600 text-white border-blue-600 z-10'
+                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  {filter === 'all' ? 'Todos' : filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Comuna Filter */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Filtrar por Zona / Comuna</label>
+            <select
+              value={comunaFilter}
+              onChange={(e) => setComunaFilter(e.target.value)}
+              className="w-full text-xs p-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 block"
+            >
+              <option value="all">Todas las Comunas</option>
+              {comunaOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Layer Controls */}
       <div className="p-6 border-b border-slate-200">
         <h3 className="text-xs font-semibold uppercase text-slate-500 mb-4 tracking-wider">Capas de Datos</h3>
-        <div className="grid gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {layers.map((layer) => {
             const Icon = layer.icon;
+            const isActive = activeLayer === layer.id;
             return (
               <button
                 key={layer.id}
                 onClick={() => setActiveLayer(layer.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium ${
-                  activeLayer === layer.id 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md' 
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={16} />
                 {layer.label}
               </button>
             );
@@ -90,7 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                 </span>
                 <span className="text-xs font-mono text-slate-400">ID: {selectedZone.id.split('-')[1]}</span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Detalle de Zona</h2>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Detalle de Zona</h2>
               
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.mainOccupation}</span>
@@ -98,66 +206,11 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
               </div>
             </div>
             
-            {/* Economic Indicators Section */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp size={14} /> Indicadores Económicos
-                </h3>
-                
-                {/* Income */}
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Ingreso Hogar (Prom.)</span>
-                    <span className="font-mono font-bold text-slate-800">{formatCOP(selectedZone.householdIncome)}</span>
-                </div>
-
-                {/* Employment Rate Bar */}
-                <div>
-                    <div className="flex justify-between text-xs mb-1">
-                        <span className="flex items-center gap-1 text-slate-600"><Briefcase size={12}/> Ocupación</span>
-                        <span className="font-semibold">{(selectedZone.employmentRate * 100).toFixed(0)}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-1000" 
-                            style={{width: `${selectedZone.employmentRate * 100}%`}}
-                        ></div>
-                    </div>
-                </div>
-
-                {/* Internet Access */}
-                <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-                    <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
-                        <Wifi size={16} />
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 uppercase font-semibold">Conectividad</div>
-                        <div className="text-sm font-medium text-slate-900">{selectedZone.internetAccess}</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Micro Chart */}
-            <div className="h-32 w-full bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-               <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={chartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" domain={[0, 'dataMax']} hide />
-                    <YAxis dataKey="name" type="category" width={60} tick={{fontSize: 12}} />
-                    <RechartsTooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#f59e0b'} />
-                        ))}
-                    </Bar>
-                 </BarChart>
-               </ResponsiveContainer>
-            </div>
-
             {/* AI Analysis Section */}
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-indigo-900 font-semibold text-sm flex items-center gap-2">
-                        <BrainCircuit size={16} />
+                    <h3 className="text-indigo-900 font-semibold text-xs flex items-center gap-2 uppercase tracking-wide">
+                        <BrainCircuit size={14} />
                         Análisis Contextual (OSINT)
                     </h3>
                 </div>
@@ -170,7 +223,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                     <button 
                         onClick={handleAiAnalysis}
                         disabled={isLoadingAi}
-                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded text-sm font-medium transition-all flex items-center justify-center gap-2"
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                         {isLoadingAi ? (
                             <>
@@ -184,11 +237,50 @@ const Dashboard: React.FC<DashboardProps> = ({ activeLayer, setActiveLayer, sele
                 )}
             </div>
 
+            {/* NEW: Comparative Metrics Chart */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Activity size={14} /> Métricas Comparativas (Score)
+                </h3>
+                <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={metricsData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{fontSize: 10}} axisLine={false} tickLine={false} />
+                            <YAxis tick={{fontSize: 10}} domain={[0, 100]} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<CustomTooltip />} cursor={{fill: '#f1f5f9'}} />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                {metricsData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                <p className="text-[10px] text-slate-400 text-center mt-2 italic">
+                    * Ingresos normalizados a escala 100. Calidad de red basada en tipo de conexión.
+                </p>
+            </div>
+
+            {/* Economic Indicators Section (Simplified) */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner space-y-3">
+                {/* Income */}
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-xs text-slate-500 font-medium">Ingreso Promedio</span>
+                    <span className="font-mono font-bold text-slate-700">{formatCOP(selectedZone.householdIncome)}</span>
+                </div>
+                 {/* Internet */}
+                 <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 font-medium">Conectividad</span>
+                    <span className="font-medium text-xs text-slate-700 text-right">{selectedZone.internetAccess}</span>
+                </div>
+            </div>
+
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center space-y-4">
             <Users size={48} className="opacity-20" />
-            <p>Selecciona una zona en el mapa<br/>para ver el reporte censal.</p>
+            <p className="text-sm">Selecciona una zona en el mapa<br/>para ver el reporte censal.</p>
           </div>
         )}
       </div>

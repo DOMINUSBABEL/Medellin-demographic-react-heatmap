@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Rectangle, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { ZoneData, MapLayer, EducationLevel, SocialInterest } from '../types';
 import L from 'leaflet';
 import { X } from 'lucide-react';
 
-// Fix for default markers
+// Fix for default markers (though we are using Rectangles mainly now)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -22,15 +22,16 @@ interface MapVisualizerProps {
 const getColor = (zone: ZoneData, layer: MapLayer): string => {
   switch (layer) {
     case MapLayer.Density:
-      return zone.density > 0.8 ? '#ef4444' : zone.density > 0.6 ? '#f97316' : zone.density > 0.4 ? '#eab308' : '#22c55e';
+      // In the quadtree view, density is inverse to size, but we use the calculated density prop
+      return zone.density > 0.8 ? '#b91c1c' : zone.density > 0.6 ? '#c2410c' : zone.density > 0.4 ? '#eab308' : '#15803d';
     case MapLayer.Age:
       return zone.avgAge > 55 ? '#7c2d12' : zone.avgAge > 40 ? '#ea580c' : zone.avgAge > 25 ? '#fdba74' : '#fef3c7';
     case MapLayer.Strata:
-      return zone.strata >= 5 ? '#22c55e' : zone.strata >= 3 ? '#eab308' : '#ef4444';
+      return zone.strata >= 5 ? '#16a34a' : zone.strata >= 3 ? '#eab308' : '#dc2626';
     case MapLayer.Education:
       switch(zone.educationLevel) {
-        case EducationLevel.Postgrad: return '#3b82f6';
-        case EducationLevel.University: return '#60a5fa';
+        case EducationLevel.Postgrad: return '#1e40af';
+        case EducationLevel.University: return '#3b82f6';
         case EducationLevel.Technical: return '#93c5fd';
         default: return '#cbd5e1';
       }
@@ -55,7 +56,7 @@ const MapEffect: React.FC<{ selectedZone: ZoneData | null }> = ({ selectedZone }
 
   useEffect(() => {
     if (selectedZone) {
-      map.flyTo([selectedZone.lat, selectedZone.lng], 15, {
+      map.flyTo([selectedZone.lat, selectedZone.lng], 14, {
         duration: 1.5,
         easeLinearity: 0.25
       });
@@ -84,7 +85,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
         center={center} 
         zoom={13} 
         scrollWheelZoom={true} 
-        className="h-full w-full"
+        className="h-full w-full bg-slate-900" // Darker background for better contrast with grid
       >
         <MapEffect selectedZone={selectedZone} />
         <MapEvents onDeselect={() => onZoneSelect(null)} />
@@ -94,29 +95,29 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
         />
         {data.map((zone) => {
             const isSelected = selectedZone?.id === zone.id;
-            return (
-                <CircleMarker
-                    key={zone.id}
-                    center={[zone.lat, zone.lng]}
-                    pathOptions={{
-                    fillColor: getColor(zone, activeLayer),
-                    color: isSelected ? '#ffffff' : 'transparent',
-                    weight: isSelected ? 3 : 0,
-                    fillOpacity: activeLayer === MapLayer.Density ? 0.6 : 0.8,
-                    }}
-                    // Significantly larger radius if selected
-                    radius={isSelected ? 18 : (activeLayer === MapLayer.Density ? (15 * zone.density) + 8 : 6)}
-                    eventHandlers={{
+            const fillColor = getColor(zone, activeLayer);
+            
+            if (zone.bounds) {
+               return (
+                  <Rectangle
+                     key={zone.id}
+                     bounds={zone.bounds}
+                     pathOptions={{
+                        fillColor: fillColor,
+                        color: isSelected ? '#ffffff' : '#000000', // Border color
+                        weight: isSelected ? 2 : 0.5, // Thin borders for mosaic look
+                        fillOpacity: isSelected ? 0.9 : 0.6,
+                     }}
+                     eventHandlers={{
                         click: (e) => {
-                            L.DomEvent.stopPropagation(e);
-                            onZoneSelect(zone);
-                        },
-                    }}
-                >
-                    <Popup className="font-sans" closeButton={false}>
+                           L.DomEvent.stopPropagation(e);
+                           onZoneSelect(zone);
+                        }
+                     }}
+                  >
+                     <Popup className="font-sans" closeButton={false}>
                         <div className="relative min-w-[180px]">
-                             {/* Custom Header with close button */}
-                            <div className="flex justify-between items-start mb-2">
+                           <div className="flex justify-between items-start mb-2">
                                 <strong className="text-gray-900 text-sm uppercase tracking-wider pr-4">
                                     {zone.locationName}
                                 </strong>
@@ -129,17 +130,19 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                             </div>
                             <div className="border-t border-gray-200 my-1"></div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600 mt-2">
-                                <span>Población:</span> <span className="font-medium text-gray-900">{zone.population}</span>
+                                <span>Población (Sim):</span> <span className="font-medium text-gray-900">{zone.population}</span>
                                 <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
-                                <span>Estrato:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
-                                <span>Ingreso:</span> <span className="font-medium text-green-700">
+                                <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
+                                <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
                                     ${(zone.householdIncome/1000000).toFixed(1)}M
                                 </span>
                             </div>
                         </div>
-                    </Popup>
-                </CircleMarker>
-            );
+                     </Popup>
+                  </Rectangle>
+               )
+            }
+            return null;
         })}
       </MapContainer>
       
@@ -149,19 +152,19 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
          <div className="flex flex-col gap-1 text-xs">
             {activeLayer === MapLayer.Density && (
                 <div className="flex items-center gap-2">
-                    <div className="w-24 h-3 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded"></div>
-                    <span className="text-gray-700">Media &rarr; Alta Densidad</span>
+                    <div className="w-24 h-3 bg-gradient-to-r from-green-700 via-yellow-500 to-red-700 rounded"></div>
+                    <span className="text-gray-700">Celdas Pequeñas = Alta Densidad</span>
                 </div>
             )}
             {activeLayer === MapLayer.Strata && (
                 <div className="flex items-center gap-2">
-                    <div className="w-24 h-3 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded"></div>
+                    <div className="w-24 h-3 bg-gradient-to-r from-red-600 via-yellow-500 to-green-600 rounded"></div>
                     <span className="text-gray-700">Estrato 1 &rarr; 6</span>
                 </div>
             )}
             {activeLayer === MapLayer.Education && (
                 <div className="flex items-center gap-2">
-                    <div className="w-24 h-3 bg-gradient-to-r from-slate-300 to-blue-500 rounded"></div>
+                    <div className="w-24 h-3 bg-gradient-to-r from-slate-300 to-blue-700 rounded"></div>
                     <span className="text-gray-700">Básico &rarr; Posgrado</span>
                 </div>
             )}
