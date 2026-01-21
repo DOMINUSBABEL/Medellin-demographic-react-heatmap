@@ -44,6 +44,21 @@ const getEstimatedIncome = (strata: number): number => {
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
 
+// --- GEOMETRY HELPERS ---
+
+const calculatePolygonArea = (polygon: [number, number][]): number => {
+    if (!polygon || polygon.length < 3) return 0.000001; // Avoid Zero
+    let area = 0;
+    for (let i = 0; i < polygon.length; i++) {
+        const j = (i + 1) % polygon.length;
+        // polygon[i] is [lat, lng]. 
+        // Simple planar approx is sufficient for relative density visualization at city scale.
+        area += polygon[i][0] * polygon[j][1];
+        area -= polygon[j][0] * polygon[i][1];
+    }
+    return Math.abs(area) / 2;
+};
+
 // --- GEOGRAPHIC CONTEXT HELPERS ---
 
 interface BoundingBox {
@@ -95,7 +110,7 @@ interface ClusterNode {
     centroidLng: number;
 }
 
-const aggregateClusterData = (node: ClusterNode, polygon: [number, number][], index: number, totalBoundsArea: number): ZoneData => {
+const aggregateClusterData = (node: ClusterNode, polygon: [number, number][], index: number, normalizedDensity: number): ZoneData => {
   const points = node.points;
   const count = points.length;
   const safeCount = count || 1; 
@@ -105,11 +120,6 @@ const aggregateClusterData = (node: ClusterNode, polygon: [number, number][], in
   const sumAge = points.reduce((sum, p) => sum + p.avgAge, 0);
   const sumStrata = points.reduce((sum, p) => sum + p.strata, 0);
   const sumEmployment = points.reduce((sum, p) => sum + p.employmentRate, 0);
-
-  // Approximate Area of Polygon (Shoelace formula or bounding box approx for density)
-  // For visualization density, relative density to population is key.
-  // We will use population / 1000 as a proxy since exact polygon area in sq meters is complex without projection libraries
-  const densityMetric = Math.min(1, (totalPopulation / 15000)); // Normalized roughly
 
   const getMode = (arr: string[]) => {
     return arr.sort((a,b) =>
@@ -136,7 +146,7 @@ const aggregateClusterData = (node: ClusterNode, polygon: [number, number][], in
     cardinalLimits: generatePolygonLimits(polygon),
     geoContext: getGeoContext(node.centroidLat, node.centroidLng),
 
-    density: densityMetric,
+    density: normalizedDensity, // Use the pre-calculated relative density
     population: totalPopulation,
     avgAge: Math.round(sumAge / safeCount),
     strata: Math.round(sumStrata / safeCount),
@@ -212,28 +222,19 @@ export const processKDTree = (rawPoints: ZoneData[], depth: number = 8): ZoneDat
   const bounds = [minLng - pad, minLat - pad, maxLng + pad, maxLat + pad]; // [x0, y0, x1, y1] for D3
 
   // 2. Cluster points by Population using K-D Tree logic
-  // This ensures every cluster has roughly same population count.
   const clusters = buildKDTreeClusters(rawPoints, depth, 'lat');
 
   // 3. Prepare Centroids for Voronoi
-  // D3 Delaunay uses [x, y] -> [lng, lat]
   const centroids = clusters.map(c => [c.centroidLng, c.centroidLat] as [number, number]);
   
   // 4. Compute Voronoi
   const delaunay = Delaunay.from(centroids);
   const voronoi = delaunay.voronoi(bounds as [number, number, number, number]);
 
-  // 5. Build Final Zones
-  const width = maxLng - minLng;
-  const height = maxLat - minLat;
-  const totalArea = width * height;
-
-  return clusters.map((cluster, i) => {
-    // Get raw polygon coordinates from D3 (returns [lng, lat] arrays)
+  // 5. Generate Polygons and Calculate Raw Density
+  const intermediateZones = clusters.map((cluster, i) => {
+    // Get raw polygon coordinates from D3
     const rawPolygon = voronoi.cellPolygon(i);
-    
-    // Convert to Leaflet format [lat, lng]
-    // If rawPolygon is null (rare edge case), fallback to small box around centroid
     let polygon: [number, number][];
     
     if (!rawPolygon) {
@@ -245,12 +246,28 @@ export const processKDTree = (rawPoints: ZoneData[], depth: number = 8): ZoneDat
         polygon = rawPolygon.map(p => [p[1], p[0]] as [number, number]);
     }
 
-    return aggregateClusterData(cluster, polygon, i, totalArea);
+    const area = calculatePolygonArea(polygon);
+    const pop = cluster.points.reduce((sum, p) => sum + p.population, 0);
+    // Density = Pop / Area. 
+    // Small Area (with equal pop) -> High Density.
+    const rawDensity = pop / area;
+
+    return { cluster, polygon, rawDensity, i };
+  });
+
+  // 6. Find Max Density to Normalize (Square root scaling for better visual spread)
+  const maxDensity = Math.max(...intermediateZones.map(z => z.rawDensity)) || 1;
+
+  // 7. Aggregate with Normalized Density
+  return intermediateZones.map(z => {
+      // Use Square Root normalization to prevent extreme outliers (tiny polygons) from skewing the whole map
+      const normalizedDensity = Math.min(1, Math.sqrt(z.rawDensity) / Math.sqrt(maxDensity));
+      return aggregateClusterData(z.cluster, z.polygon, z.i, normalizedDensity);
   });
 };
 
 
-// --- UPDATED DATA PROFILES (Same as before) ---
+// --- EXISTING PROFILES PRESERVED ---
 const COMUNA_PROFILES = [
   // --- ZONA NORORIENTAL ---
   {

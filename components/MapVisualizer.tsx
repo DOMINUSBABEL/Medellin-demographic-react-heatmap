@@ -22,7 +22,13 @@ interface MapVisualizerProps {
 const getColor = (zone: ZoneData, layer: MapLayer): string => {
   switch (layer) {
     case MapLayer.Density:
-      return zone.density > 0.8 ? '#b91c1c' : zone.density > 0.6 ? '#c2410c' : zone.density > 0.4 ? '#eab308' : '#15803d';
+      // High Density (Small Polygon) -> Red/Orange
+      // Low Density (Large Polygon) -> Blue/Green
+      if (zone.density > 0.8) return '#7f1d1d'; // Very High (Deep Red)
+      if (zone.density > 0.6) return '#c2410c'; // High (Orange Red)
+      if (zone.density > 0.4) return '#eab308'; // Medium (Yellow)
+      if (zone.density > 0.2) return '#15803d'; // Low (Green)
+      return '#3b82f6'; // Very Low (Blue - Large Areas)
     case MapLayer.Age:
       return zone.avgAge > 55 ? '#7c2d12' : zone.avgAge > 40 ? '#ea580c' : zone.avgAge > 25 ? '#fdba74' : '#fef3c7';
     case MapLayer.Strata:
@@ -162,8 +168,11 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
          <div className="flex flex-col gap-1 text-xs">
             {activeLayer === MapLayer.Density && (
                 <div className="flex items-center gap-2">
-                    <div className="w-24 h-3 bg-gradient-to-r from-green-700 via-yellow-500 to-red-700 rounded"></div>
-                    <span className="text-gray-700">Concentración Geográfica</span>
+                    <div className="w-full h-3 bg-gradient-to-r from-blue-500 via-green-600 via-yellow-500 via-orange-500 to-red-900 rounded"></div>
+                    <div className="flex justify-between w-full text-[10px] text-gray-600 mt-1">
+                        <span>Disperso (Grande)</span>
+                        <span>Denso (Pequeño)</span>
+                    </div>
                 </div>
             )}
             {activeLayer === MapLayer.Strata && (
