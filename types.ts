@@ -18,12 +18,19 @@ export enum EducationLevel {
 
 export interface ZoneData {
   id: string;
-  locationName: string;
+  locationName: string; // Comuna Name
+  specificSector: string; // Specific Barrio or Sector (New)
+  
   lat: number;
   lng: number;
-  // New: Bounds for the Quadtree Rectangle [[lat1, lng1], [lat2, lng2]]
-  bounds?: [[number, number], [number, number]]; 
   
+  // Changed from fixed bounds to flexible polygon
+  polygon: [number, number][]; 
+  
+  // New: Human readable boundary limits
+  cardinalLimits: string; 
+  geoContext: string; // "West Bank", "Northern Hills", etc.
+
   density: number; // 0-1 normalized
   population: number; // Est. count
   avgAge: number;
@@ -32,10 +39,12 @@ export interface ZoneData {
   topInterest: SocialInterest;
   strata: number; // 1-6 Socio-economic strata in Colombia
   
-  // New Demographics
   householdIncome: number; // Monthly COP
   employmentRate: number; // 0.0 to 1.0
   internetAccess: string; // Type of connection
+  
+  // Internal helper for aggregation
+  _barrioSource?: string;
 }
 
 export enum MapLayer {

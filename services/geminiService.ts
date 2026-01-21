@@ -13,21 +13,25 @@ export const analyzeDemographics = async (zone: ZoneData): Promise<string> => {
     const ai = getAiClient();
     if (!ai) return "Error: API Key no configurada.";
 
-    // Updated prompt to leverage the new Location Name and request OSINT/DANE context
+    // Updated prompt to leverage the new Specific Sector and Cardinal Bounds
     const prompt = `
         Actúa como un analista de datos sociodemográficos experto en Medellín, Colombia.
         Tienes acceso a los reportes del DANE y tendencias de Open Source Intelligence (OSINT).
 
-        Analiza la siguiente zona:
-        Ubicación: ${zone.locationName}
+        Analiza la siguiente zona específica:
+        
+        Ubicación: ${zone.specificSector} (${zone.locationName})
+        Contexto Geográfico: ${zone.geoContext}
+        Límites Exactos: ${zone.cardinalLimits}
+        
         Datos detectados:
         - Estrato: ${zone.strata}
-        - Densidad Relativa: ${(zone.density * 100).toFixed(0)}%
+        - Ingresos Hogar: $${(zone.householdIncome/1000000).toFixed(1)}M COP
         - Edad Promedio: ${zone.avgAge} años
         - Educación Predominante: ${zone.educationLevel}
         - Interés Digital Principal: ${zone.topInterest}
 
-        Genera un perfil conciso (máx 80 palabras) conectando estos datos con la realidad conocida de esta comuna (ej. historia, transformación urbana, seguridad, economía local).
+        Genera un perfil conciso (máx 80 palabras) conectando estos datos con la realidad conocida de este barrio o sector específico. Menciona dinámicas locales (ej. comercio, turismo, seguridad, pendientes/laderas, transformación urbana).
     `;
 
     try {

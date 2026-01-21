@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Rectangle, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { ZoneData, MapLayer, EducationLevel, SocialInterest } from '../types';
 import L from 'leaflet';
-import { X } from 'lucide-react';
+import { X, Compass, MapPin } from 'lucide-react';
 
-// Fix for default markers (though we are using Rectangles mainly now)
+// Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -22,7 +22,6 @@ interface MapVisualizerProps {
 const getColor = (zone: ZoneData, layer: MapLayer): string => {
   switch (layer) {
     case MapLayer.Density:
-      // In the quadtree view, density is inverse to size, but we use the calculated density prop
       return zone.density > 0.8 ? '#b91c1c' : zone.density > 0.6 ? '#c2410c' : zone.density > 0.4 ? '#eab308' : '#15803d';
     case MapLayer.Age:
       return zone.avgAge > 55 ? '#7c2d12' : zone.avgAge > 40 ? '#ea580c' : zone.avgAge > 25 ? '#fdba74' : '#fef3c7';
@@ -37,12 +36,12 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
       }
     case MapLayer.Interest:
       switch(zone.topInterest) {
-        case SocialInterest.Tech: return '#0ea5e9'; // Cyan
-        case SocialInterest.Sports: return '#10b981'; // Emerald
-        case SocialInterest.Fashion: return '#db2777'; // Pink
-        case SocialInterest.Politics: return '#64748b'; // Slate
-        case SocialInterest.Music: return '#8b5cf6'; // Violet
-        case SocialInterest.Travel: return '#f59e0b'; // Amber
+        case SocialInterest.Tech: return '#0ea5e9'; 
+        case SocialInterest.Sports: return '#10b981'; 
+        case SocialInterest.Fashion: return '#db2777'; 
+        case SocialInterest.Politics: return '#64748b'; 
+        case SocialInterest.Music: return '#8b5cf6'; 
+        case SocialInterest.Travel: return '#f59e0b'; 
         default: return '#94a3b8';
       }
     default:
@@ -50,29 +49,21 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
   }
 };
 
-// Component to handle map movements
 const MapEffect: React.FC<{ selectedZone: ZoneData | null }> = ({ selectedZone }) => {
   const map = useMap();
-
   useEffect(() => {
     if (selectedZone) {
-      map.flyTo([selectedZone.lat, selectedZone.lng], 14, {
+      map.flyTo([selectedZone.lat, selectedZone.lng], 15, {
         duration: 1.5,
         easeLinearity: 0.25
       });
     }
   }, [selectedZone, map]);
-
   return null;
 };
 
-// Component to handle background clicks
 const MapEvents: React.FC<{ onDeselect: () => void }> = ({ onDeselect }) => {
-    useMapEvents({
-        click: () => {
-            onDeselect();
-        }
-    });
+    useMapEvents({ click: () => onDeselect() });
     return null;
 }
 
@@ -85,7 +76,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
         center={center} 
         zoom={13} 
         scrollWheelZoom={true} 
-        className="h-full w-full bg-slate-900" // Darker background for better contrast with grid
+        className="h-full w-full bg-slate-900" 
       >
         <MapEffect selectedZone={selectedZone} />
         <MapEvents onDeselect={() => onZoneSelect(null)} />
@@ -97,15 +88,15 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             const isSelected = selectedZone?.id === zone.id;
             const fillColor = getColor(zone, activeLayer);
             
-            if (zone.bounds) {
+            if (zone.polygon && zone.polygon.length > 0) {
                return (
-                  <Rectangle
+                  <Polygon
                      key={zone.id}
-                     bounds={zone.bounds}
+                     positions={zone.polygon}
                      pathOptions={{
                         fillColor: fillColor,
-                        color: isSelected ? '#ffffff' : '#000000', // Border color
-                        weight: isSelected ? 2 : 0.5, // Thin borders for mosaic look
+                        color: isSelected ? '#ffffff' : '#111111',
+                        weight: isSelected ? 2 : 0.5,
                         fillOpacity: isSelected ? 0.9 : 0.6,
                      }}
                      eventHandlers={{
@@ -115,12 +106,18 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                         }
                      }}
                   >
-                     <Popup className="font-sans" closeButton={false}>
-                        <div className="relative min-w-[180px]">
+                     <Popup className="font-sans" closeButton={false} minWidth={280} maxWidth={320}>
+                        <div className="relative">
                            <div className="flex justify-between items-start mb-2">
-                                <strong className="text-gray-900 text-sm uppercase tracking-wider pr-4">
+                                <div>
+                                  {/* Detailed Naming */}
+                                  <strong className="block text-gray-900 text-sm font-bold leading-tight">
+                                    {zone.specificSector}
+                                  </strong>
+                                  <span className="text-[10px] text-gray-500 uppercase tracking-wide">
                                     {zone.locationName}
-                                </strong>
+                                  </span>
+                                </div>
                                 <button 
                                     onClick={() => onZoneSelect(null)}
                                     className="text-gray-400 hover:text-gray-700 transition-colors -mt-1 -mr-1"
@@ -128,9 +125,22 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                                     <X size={16} />
                                 </button>
                             </div>
-                            <div className="border-t border-gray-200 my-1"></div>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600 mt-2">
-                                <span>Población (Sim):</span> <span className="font-medium text-gray-900">{zone.population}</span>
+                            
+                            <div className="border-t border-gray-200 my-2"></div>
+                            
+                            {/* New: Context & Boundaries Section */}
+                            <div className="bg-slate-50 p-2 rounded mb-2 border border-slate-100">
+                                <div className="flex items-center gap-1 text-[10px] text-blue-700 font-semibold mb-1">
+                                  <Compass size={12} />
+                                  <span>{zone.geoContext}</span>
+                                </div>
+                                <div className="text-[9px] text-slate-500 font-mono leading-tight">
+                                  {zone.cardinalLimits}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
+                                <span>Población (Eq):</span> <span className="font-medium text-gray-900">{zone.population} hab</span>
                                 <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
                                 <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
                                 <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
@@ -139,7 +149,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                             </div>
                         </div>
                      </Popup>
-                  </Rectangle>
+                  </Polygon>
                )
             }
             return null;
@@ -153,7 +163,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             {activeLayer === MapLayer.Density && (
                 <div className="flex items-center gap-2">
                     <div className="w-24 h-3 bg-gradient-to-r from-green-700 via-yellow-500 to-red-700 rounded"></div>
-                    <span className="text-gray-700">Celdas Pequeñas = Alta Densidad</span>
+                    <span className="text-gray-700">Concentración Geográfica</span>
                 </div>
             )}
             {activeLayer === MapLayer.Strata && (

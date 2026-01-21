@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -89,12 +89,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       },
     ];
   }, [selectedZone]);
-
-  // Mini Chart Data (Strata/Density)
-  const chartData = selectedZone ? [
-    { name: 'Estrato', value: selectedZone.strata, max: 6 },
-    { name: 'Densidad', value: selectedZone.density * 10, max: 10 },
-  ] : [];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -196,14 +190,32 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wide flex items-center gap-1">
                     <MapPin size={12} /> {selectedZone.locationName}
                 </span>
-                <span className="text-xs font-mono text-slate-400">ID: {selectedZone.id.split('-')[1]}</span>
+                <span className="text-xs font-mono text-slate-400">
+                    ID: {selectedZone.id.split('-')[1]}
+                </span>
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Detalle de Zona</h2>
+              <h2 className="text-xl font-bold text-slate-800 leading-tight">
+                {selectedZone.specificSector}
+              </h2>
               
-              <div className="mt-2 flex flex-wrap gap-2">
+              {/* Context Tag */}
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 font-medium bg-slate-100 p-2 rounded-md">
+                <Compass size={14} className="text-slate-400" />
+                {selectedZone.geoContext}
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.mainOccupation}</span>
                 <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.educationLevel}</span>
               </div>
+            </div>
+
+            {/* Coordinates / Bounds Detail */}
+            <div className="bg-slate-50 p-3 rounded border border-slate-200 text-[10px] text-slate-500 font-mono">
+                <div className="uppercase font-bold mb-1 text-slate-400">Coordenadas Limítrofes (K-D Bounds)</div>
+                <div className="break-words leading-tight">
+                    {selectedZone.cardinalLimits}
+                </div>
             </div>
             
             {/* AI Analysis Section */}
@@ -257,9 +269,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
-                <p className="text-[10px] text-slate-400 text-center mt-2 italic">
-                    * Ingresos normalizados a escala 100. Calidad de red basada en tipo de conexión.
-                </p>
             </div>
 
             {/* Economic Indicators Section (Simplified) */}
@@ -280,7 +289,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center space-y-4">
             <Users size={48} className="opacity-20" />
-            <p className="text-sm">Selecciona una zona en el mapa<br/>para ver el reporte censal.</p>
+            <p className="text-sm">Selecciona una zona en el mapa<br/>para ver el reporte censal detallado.</p>
           </div>
         )}
       </div>
