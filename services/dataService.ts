@@ -1,4 +1,4 @@
-import { ZoneData, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum } from '../types';
+import { ZoneData, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum, GovernorVote, PublicCorporationParty } from '../types';
 import { Delaunay } from 'd3-delaunay';
 
 // --- HELPER FUNCTIONS ---
@@ -53,36 +53,97 @@ const getEstimatedIncome = (strata: number): number => {
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
 
-// --- POLITICS GENERATOR ---
-const getPoliticalData = (strata: number, age: number): { party: PoliticalParty, spectrum: PoliticalSpectrum } => {
+// --- POLITICS GENERATOR (COMPREHENSIVE) ---
+
+const getPoliticalProfile = (strata: number, age: number) => {
     const rand = Math.random();
     
-    // Logic based on Medellin 2023 Elections (Fico landslide, specific pockets of opposition)
-    
-    // High Strata (El Poblado, Laureles) - Heavily Right/Center-Right
+    // --- 1. MAYOR & SPECTRUM (Preserved) ---
+    let mayor = PoliticalParty.Creemos;
+    let spectrum = PoliticalSpectrum.Derecha;
+
     if (strata >= 5) {
-        if (rand < 0.80) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
-        if (rand < 0.90) return { party: PoliticalParty.Centro, spectrum: PoliticalSpectrum.CentroDerecha };
-        return { party: PoliticalParty.VotoEnBlanco, spectrum: PoliticalSpectrum.Centro };
+        if (rand < 0.80) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.Derecha; }
+        else if (rand < 0.90) { mayor = PoliticalParty.Centro; spectrum = PoliticalSpectrum.CentroDerecha; }
+        else { mayor = PoliticalParty.VotoEnBlanco; spectrum = PoliticalSpectrum.Centro; }
+    } else if (strata === 3 || strata === 4) {
+        if (rand < 0.65) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.Derecha; }
+        else if (rand < 0.80) { mayor = PoliticalParty.Centro; spectrum = PoliticalSpectrum.Centro; }
+        else if (rand < 0.90) { mayor = PoliticalParty.Independientes; spectrum = PoliticalSpectrum.CentroIzquierda; }
+        else { mayor = PoliticalParty.Pacto; spectrum = PoliticalSpectrum.Izquierda; }
+    } else {
+        if (rand < 0.50) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.CentroDerecha; }
+        else if (rand < 0.75) { mayor = PoliticalParty.Independientes; spectrum = PoliticalSpectrum.CentroIzquierda; }
+        else if (rand < 0.90) { mayor = PoliticalParty.Pacto; spectrum = PoliticalSpectrum.Izquierda; }
+        else { mayor = PoliticalParty.VotoEnBlanco; spectrum = PoliticalSpectrum.Centro; }
     }
 
-    // Middle Strata (Belén, Buenos Aires, América)
-    if (strata === 3 || strata === 4) {
-        if (rand < 0.65) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
-        if (rand < 0.80) return { party: PoliticalParty.Centro, spectrum: PoliticalSpectrum.Centro };
-        if (rand < 0.90) return { party: PoliticalParty.Independientes, spectrum: PoliticalSpectrum.CentroIzquierda };
-        return { party: PoliticalParty.Pacto, spectrum: PoliticalSpectrum.Izquierda };
+    // --- 2. GOVERNOR 2023 ---
+    // Rendon (CD) strong in strata 4,5,6. Luis Perez mixed but stronger in lower/middle. Suarez continuity.
+    let governor = GovernorVote.Rendon;
+    const rGov = Math.random();
+
+    if (spectrum === PoliticalSpectrum.Derecha || spectrum === PoliticalSpectrum.CentroDerecha) {
+        governor = rGov > 0.2 ? GovernorVote.Rendon : GovernorVote.Suarez;
+    } else if (spectrum === PoliticalSpectrum.Izquierda || spectrum === PoliticalSpectrum.CentroIzquierda) {
+        // Left split vote often or went blank/Perez in absence of strong own candidate
+        governor = rGov > 0.5 ? GovernorVote.LuisPerez : GovernorVote.VotoEnBlanco;
+    } else {
+        // Center
+        if (rGov < 0.4) governor = GovernorVote.Suarez;
+        else if (rGov < 0.7) governor = GovernorVote.LuisPerez;
+        else governor = GovernorVote.Rendon;
     }
 
-    // Lower Strata (Popular, Santa Cruz, Manrique) - Mixed, higher Populism/Left presence but still Fico dominant in 2023
-    if (strata <= 2) {
-        if (rand < 0.50) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.CentroDerecha };
-        if (rand < 0.75) return { party: PoliticalParty.Independientes, spectrum: PoliticalSpectrum.CentroIzquierda };
-        if (rand < 0.90) return { party: PoliticalParty.Pacto, spectrum: PoliticalSpectrum.Izquierda };
-        return { party: PoliticalParty.VotoEnBlanco, spectrum: PoliticalSpectrum.Centro };
+    // --- 3. PUBLIC CORPORATIONS (Council/Assembly 2023 & Congress 2022) ---
+    // Helper to generate party based on bias
+    const getParty = (bias: 'Right' | 'Left' | 'Center' | 'Mixed'): PublicCorporationParty => {
+        const r = Math.random();
+        if (bias === 'Right') {
+             if (r < 0.6) return PublicCorporationParty.Creemos;
+             if (r < 0.9) return PublicCorporationParty.CentroDemocratico;
+             return PublicCorporationParty.PartidoConservador;
+        }
+        if (bias === 'Left') {
+            if (r < 0.6) return PublicCorporationParty.PactoHistorico;
+            if (r < 0.8) return PublicCorporationParty.AlianzaVerde;
+            return PublicCorporationParty.ASI; // Often Independent lists
+        }
+        if (bias === 'Center') {
+            if (r < 0.5) return PublicCorporationParty.AlianzaVerde;
+            if (r < 0.8) return PublicCorporationParty.ASI;
+            return PublicCorporationParty.PartidoLiberal;
+        }
+        // Mixed (Strata 1-3 Machinery)
+        if (r < 0.3) return PublicCorporationParty.PartidoLiberal;
+        if (r < 0.5) return PublicCorporationParty.CentroDemocratico; // Popular right
+        if (r < 0.7) return PublicCorporationParty.Creemos;
+        if (r < 0.85) return PublicCorporationParty.PactoHistorico;
+        return PublicCorporationParty.ASI;
+    };
+
+    let bias: 'Right' | 'Left' | 'Center' | 'Mixed' = 'Mixed';
+    if (strata >= 5) bias = 'Right';
+    else if (age < 30 && strata <= 4) bias = 'Left'; // Youth vote
+    else if (strata === 4) bias = 'Center';
+
+    const council = getParty(bias);
+    
+    // Assembly tends to be more traditional (Liberal/Conservador machinery stronger than in Council)
+    let assembly = council;
+    if (Math.random() > 0.6) {
+         assembly = Math.random() > 0.5 ? PublicCorporationParty.PartidoConservador : PublicCorporationParty.PartidoLiberal;
     }
 
-    return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
+    // Congress 2022 (Pacto was stronger then, CD always strong)
+    let congress = council;
+    if (bias === 'Left' || bias === 'Center') {
+        if (Math.random() > 0.3) congress = PublicCorporationParty.PactoHistorico; // 2022 Peak
+    } else if (bias === 'Right') {
+        congress = PublicCorporationParty.CentroDemocratico; // 2022 Peak for Senate
+    }
+
+    return { mayor, spectrum, governor, council, assembly, congress };
 };
 
 
@@ -335,6 +396,10 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   // Calculate categorical modes for politics
   const dominantParty = getMode(points.map(p => p.votingPreference)) || PoliticalParty.VotoEnBlanco;
   const dominantSpectrum = getMode(points.map(p => p.politicalSpectrum)) || PoliticalSpectrum.Centro;
+  const dominantGovernor = getMode(points.map(p => p.votingGovernor)) || GovernorVote.VotoEnBlanco;
+  const dominantCouncil = getMode(points.map(p => p.votingCouncil)) || PublicCorporationParty.ASI;
+  const dominantAssembly = getMode(points.map(p => p.votingAssembly)) || PublicCorporationParty.ASI;
+  const dominantCongress = getMode(points.map(p => p.votingCongress)) || PublicCorporationParty.ASI;
 
   return {
     id: `z-${index}`,
@@ -363,8 +428,12 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     mainOccupation: dominantOccupation,
     internetAccess: dominantInternet,
     
-    // Politics
+    // Politics (Aggregated)
     votingPreference: dominantParty,
+    votingGovernor: dominantGovernor,
+    votingCouncil: dominantCouncil,
+    votingAssembly: dominantAssembly,
+    votingCongress: dominantCongress,
     politicalSpectrum: dominantSpectrum
   };
 };
@@ -379,7 +448,6 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
     // Generate points around the specific barrio centroid
     for (let i = 0; i < pointsPerBarrio; i++) {
       
-      // Increased spread slightly to cover gaps between new detailed barrios without overlapping too chaotically
       const spread = 0.0030; 
       const latOffset = randomGaussian() * spread; 
       const lngOffset = randomGaussian() * spread;
@@ -411,9 +479,8 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       
       // Politics
-      const politics = getPoliticalData(strata, age);
+      const politics = getPoliticalProfile(strata, age);
 
-      // Weight per point adjusted for 26k points -> ~2.6M total pop
       const pointPopulation = 95 + Math.floor(Math.random() * 15); 
 
       data.push({
@@ -438,7 +505,13 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
         householdIncome: income,
         employmentRate: employmentRate,
         internetAccess: getInternetAccess(strata),
-        votingPreference: politics.party,
+        
+        // Mapped Politics
+        votingPreference: politics.mayor,
+        votingGovernor: politics.governor,
+        votingCouncil: politics.council,
+        votingAssembly: politics.assembly,
+        votingCongress: politics.congress,
         politicalSpectrum: politics.spectrum
       });
     }

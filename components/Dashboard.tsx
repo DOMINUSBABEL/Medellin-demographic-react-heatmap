@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass, Building, Mail, Vote, Flag } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass, Building, Mail, Vote, Flag, Landmark } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -45,13 +45,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const layers = [
-    { id: MapLayer.Density, label: 'Densidad Poblacional', icon: Users },
-    { id: MapLayer.Strata, label: 'Nivel Socioeconómico', icon: DollarSign },
-    { id: MapLayer.Education, label: 'Nivel Educativo', icon: GraduationCap },
-    { id: MapLayer.Age, label: 'Distribución Edad', icon: Activity },
-    { id: MapLayer.Interest, label: 'Intereses Sociales', icon: Layers },
-    { id: MapLayer.Voting, label: 'Votación 2023', icon: Vote },
+    { id: MapLayer.Density, label: 'Densidad', icon: Users },
+    { id: MapLayer.Strata, label: 'Socioeconómico', icon: DollarSign },
+    { id: MapLayer.Education, label: 'Educación', icon: GraduationCap },
+    { id: MapLayer.Age, label: 'Edad', icon: Activity },
+    { id: MapLayer.Interest, label: 'Intereses', icon: Layers },
     { id: MapLayer.Spectrum, label: 'Espectro Político', icon: Flag },
+    { id: MapLayer.Voting, label: 'Alcaldía 2023', icon: Vote },
+    { id: MapLayer.Governor, label: 'Gobernación 23', icon: Landmark },
+    { id: MapLayer.Council, label: 'Concejo 2023', icon: Vote },
+    { id: MapLayer.Assembly, label: 'Asamblea 2023', icon: Landmark },
+    { id: MapLayer.Congress, label: 'Congreso 2022', icon: Building },
   ];
 
   const getInternetScore = (type: string) => {
@@ -213,6 +217,31 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
               </div>
             </div>
+            
+            {/* Political Profile Detailed */}
+            <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 shadow-inner">
+               <h3 className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                   <Vote size={14} /> Perfil Electoral (Zona)
+               </h3>
+               <div className="space-y-2 text-xs">
+                   <div className="flex justify-between border-b border-slate-200 pb-1">
+                       <span className="text-slate-500">Alcaldía '23</span>
+                       <span className="font-semibold text-indigo-700">{selectedZone.votingPreference}</span>
+                   </div>
+                   <div className="flex justify-between border-b border-slate-200 pb-1">
+                       <span className="text-slate-500">Gobernación '23</span>
+                       <span className="font-semibold text-blue-800 text-right">{selectedZone.votingGovernor}</span>
+                   </div>
+                   <div className="flex justify-between border-b border-slate-200 pb-1">
+                       <span className="text-slate-500">Concejo '23</span>
+                       <span className="font-semibold text-slate-800">{selectedZone.votingCouncil}</span>
+                   </div>
+                   <div className="flex justify-between border-b border-slate-200 pb-1">
+                       <span className="text-slate-500">Congreso '22</span>
+                       <span className="font-semibold text-slate-800">{selectedZone.votingCongress}</span>
+                   </div>
+               </div>
+            </div>
 
             {/* Coordinates / Bounds Detail */}
             <div className="bg-slate-50 p-3 rounded border border-slate-200 text-[10px] text-slate-500 font-mono flex justify-between">
@@ -288,10 +317,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-xs text-slate-500 font-medium">Conectividad</span>
                     <span className="font-medium text-xs text-slate-700 text-right">{selectedZone.internetAccess}</span>
-                </div>
-                 <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500 font-medium">Tendencia Política</span>
-                    <span className="font-medium text-xs text-indigo-700 text-right">{selectedZone.votingPreference}</span>
                 </div>
             </div>
 

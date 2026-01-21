@@ -24,6 +24,24 @@ export enum PoliticalParty {
   VotoEnBlanco = 'Voto en Blanco'
 }
 
+export enum GovernorVote {
+  Rendon = 'A.J. Rendón (CD)',
+  LuisPerez = 'Luis Pérez',
+  Suarez = 'L.F. Suárez',
+  Bedoya = 'Julián Bedoya',
+  VotoEnBlanco = 'Voto en Blanco'
+}
+
+export enum PublicCorporationParty {
+  CentroDemocratico = 'Centro Democrático',
+  Creemos = 'Creemos',
+  PactoHistorico = 'Pacto Histórico',
+  PartidoLiberal = 'Partido Liberal',
+  PartidoConservador = 'Partido Conservador',
+  AlianzaVerde = 'Alianza Verde',
+  ASI = 'ASI / Otros'
+}
+
 export enum PoliticalSpectrum {
   Derecha = 'Derecha',
   CentroDerecha = 'Centro-Derecha',
@@ -61,8 +79,12 @@ export interface ZoneData {
   employmentRate: number; 
   internetAccess: string; 
   
-  // Voting Data 2023
-  votingPreference: PoliticalParty;
+  // Voting Data (Comprehensive)
+  votingPreference: PoliticalParty; // Mayor 2023
+  votingGovernor: GovernorVote; // Governor 2023
+  votingCouncil: PublicCorporationParty; // City Council 2023
+  votingAssembly: PublicCorporationParty; // Assembly 2023
+  votingCongress: PublicCorporationParty; // Congress (Senate/House) 2022
   politicalSpectrum: PoliticalSpectrum;
   
   _barrioSource?: string;
@@ -74,6 +96,10 @@ export enum MapLayer {
   Education = 'education',
   Strata = 'strata',
   Interest = 'interest',
-  Voting = 'voting',
+  Voting = 'voting', // Mayor
+  Governor = 'governor',
+  Council = 'council',
+  Assembly = 'assembly',
+  Congress = 'congress',
   Spectrum = 'spectrum'
 }

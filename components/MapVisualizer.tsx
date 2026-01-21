@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import { ZoneData, MapLayer, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum } from '../types';
+import { ZoneData, MapLayer, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum, GovernorVote, PublicCorporationParty } from '../types';
 import L from 'leaflet';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
 
@@ -56,6 +56,29 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
             case PoliticalParty.Centro: return '#10b981'; // Green
             default: return '#94a3b8';
         }
+    case MapLayer.Governor:
+        switch(zone.votingGovernor) {
+            case GovernorVote.Rendon: return '#1e3a8a'; // Dark Blue (CD)
+            case GovernorVote.LuisPerez: return '#14b8a6'; // Teal
+            case GovernorVote.Suarez: return '#64748b'; // Slate
+            case GovernorVote.Bedoya: return '#f59e0b'; // Orange
+            default: return '#cbd5e1';
+        }
+    // Shared Colors for Corporations
+    case MapLayer.Council:
+    case MapLayer.Assembly:
+    case MapLayer.Congress:
+        const val = layer === MapLayer.Council ? zone.votingCouncil : layer === MapLayer.Assembly ? zone.votingAssembly : zone.votingCongress;
+        switch(val) {
+            case PublicCorporationParty.Creemos: return '#581c87';
+            case PublicCorporationParty.CentroDemocratico: return '#1e3a8a';
+            case PublicCorporationParty.PartidoConservador: return '#0369a1'; // Light Blue
+            case PublicCorporationParty.PartidoLiberal: return '#dc2626'; // Red
+            case PublicCorporationParty.PactoHistorico: return '#be123c'; // Dark Red
+            case PublicCorporationParty.AlianzaVerde: return '#15803d'; // Green
+            default: return '#94a3b8';
+        }
+
     case MapLayer.Spectrum:
         switch(zone.politicalSpectrum) {
             case PoliticalSpectrum.Derecha: return '#1e3a8a'; // Dark Blue
@@ -210,7 +233,9 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                                 <span>Población (Eq):</span> <span className="font-medium text-gray-900">{zone.population} hab</span>
                                 <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
                                 <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
-                                <span>Tendencia:</span> <span className="font-bold text-indigo-700">{zone.votingPreference}</span>
+                                <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
+                                    ${(zone.householdIncome/1000000).toFixed(1)}M
+                                </span>
                             </div>
                         </div>
                      </Popup>
@@ -224,7 +249,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
       {/* Legend Overlay */}
       <div className="absolute bottom-6 right-6 z-[1000] bg-white/90 backdrop-blur p-4 rounded-lg shadow-xl border border-gray-200 max-w-xs">
          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Leyenda: {activeLayer}</h4>
-         <div className="flex flex-col gap-1 text-xs">
+         <div className="flex flex-col gap-1 text-xs max-h-48 overflow-y-auto">
             {activeLayer === MapLayer.Density && (
                 <div className="flex items-center gap-2">
                     <div className="w-full h-3 bg-gradient-to-r from-blue-500 via-green-600 via-yellow-500 via-orange-500 to-red-900 rounded"></div>
@@ -267,6 +292,26 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                    {Object.values(PoliticalParty).map(p => (
                        <div key={p} className="flex items-center gap-1">
                            <span className="w-3 h-3 rounded-full" style={{backgroundColor: getColor({votingPreference: p} as any, MapLayer.Voting)}}></span>
+                           <span>{p}</span>
+                       </div>
+                   ))}
+               </div>
+           )}
+           {activeLayer === MapLayer.Governor && (
+               <div className="flex flex-col gap-1">
+                   {Object.values(GovernorVote).map(p => (
+                       <div key={p} className="flex items-center gap-1">
+                           <span className="w-3 h-3 rounded-full" style={{backgroundColor: getColor({votingGovernor: p} as any, MapLayer.Governor)}}></span>
+                           <span>{p}</span>
+                       </div>
+                   ))}
+               </div>
+           )}
+           {(activeLayer === MapLayer.Council || activeLayer === MapLayer.Assembly || activeLayer === MapLayer.Congress) && (
+               <div className="flex flex-col gap-1">
+                   {Object.values(PublicCorporationParty).map(p => (
+                       <div key={p} className="flex items-center gap-1">
+                           <span className="w-3 h-3 rounded-full" style={{backgroundColor: getColor({votingCouncil: p} as any, MapLayer.Council)}}></span>
                            <span>{p}</span>
                        </div>
                    ))}
