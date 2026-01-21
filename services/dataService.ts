@@ -53,94 +53,146 @@ const getEstimatedIncome = (strata: number): number => {
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
 
-// --- POLITICS GENERATOR (COMPREHENSIVE) ---
+// --- POLITICS GENERATOR (CURATED E-26 DATA) ---
 
-const getPoliticalProfile = (strata: number, age: number) => {
-    const rand = Math.random();
-    
-    // --- 1. MAYOR & SPECTRUM (Preserved) ---
+const getPoliticalProfile = (strata: number, age: number, comunaName: string) => {
+    const r = Math.random(); // General Randomizer
+    const r2 = Math.random(); // Secondary Randomizer
+
     let mayor = PoliticalParty.Creemos;
+    let governor = GovernorVote.Rendon;
+    let council = PublicCorporationParty.Creemos;
+    let assembly = PublicCorporationParty.CentroDemocratico;
+    let congress = PublicCorporationParty.CentroDemocratico;
     let spectrum = PoliticalSpectrum.Derecha;
 
-    if (strata >= 5) {
-        if (rand < 0.80) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.Derecha; }
-        else if (rand < 0.90) { mayor = PoliticalParty.Centro; spectrum = PoliticalSpectrum.CentroDerecha; }
-        else { mayor = PoliticalParty.VotoEnBlanco; spectrum = PoliticalSpectrum.Centro; }
-    } else if (strata === 3 || strata === 4) {
-        if (rand < 0.65) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.Derecha; }
-        else if (rand < 0.80) { mayor = PoliticalParty.Centro; spectrum = PoliticalSpectrum.Centro; }
-        else if (rand < 0.90) { mayor = PoliticalParty.Independientes; spectrum = PoliticalSpectrum.CentroIzquierda; }
-        else { mayor = PoliticalParty.Pacto; spectrum = PoliticalSpectrum.Izquierda; }
-    } else {
-        if (rand < 0.50) { mayor = PoliticalParty.Creemos; spectrum = PoliticalSpectrum.CentroDerecha; }
-        else if (rand < 0.75) { mayor = PoliticalParty.Independientes; spectrum = PoliticalSpectrum.CentroIzquierda; }
-        else if (rand < 0.90) { mayor = PoliticalParty.Pacto; spectrum = PoliticalSpectrum.Izquierda; }
-        else { mayor = PoliticalParty.VotoEnBlanco; spectrum = PoliticalSpectrum.Centro; }
+    // --- LOGIC BASED ON MEDELLIN ELECTORAL GEOGRAPHY ---
+
+    // 1. ZONA SUR-OCCIDENTE Y ELITES (Poblado, Laureles, Belén)
+    // Historical: Heavy Fico (80%+), Heavy Rendon, Heavy CD/Creemos.
+    if (['El Poblado', 'Laureles', 'Belén'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.Derecha;
+        if (comunaName.includes('Laureles') && r > 0.85) spectrum = PoliticalSpectrum.Centro; // Small Fajardo pocket
+
+        // Mayor 2023 (Fico Landslide)
+        if (r < 0.85) mayor = PoliticalParty.Creemos;
+        else if (r < 0.95) mayor = PoliticalParty.Centro; // Compromiso
+        else mayor = PoliticalParty.VotoEnBlanco;
+
+        // Governor 2023 (Rendon dominance in high strata)
+        if (r < 0.70) governor = GovernorVote.Rendon;
+        else if (r < 0.90) governor = GovernorVote.Suarez; // Continuity vote
+        else governor = GovernorVote.Bedoya;
+
+        // Congress 2022 (CD Stronghold)
+        if (r < 0.60) congress = PublicCorporationParty.CentroDemocratico;
+        else if (r < 0.80) congress = PublicCorporationParty.Creemos; // Fico List
+        else if (r < 0.90) congress = PublicCorporationParty.AlianzaVerde; // Alternative vote
+        else congress = PublicCorporationParty.PartidoConservador;
+        
+        council = congress; // Correlation
     }
 
-    // --- 2. GOVERNOR 2023 ---
-    // Rendon (CD) strong in strata 4,5,6. Luis Perez mixed but stronger in lower/middle. Suarez continuity.
-    let governor = GovernorVote.Rendon;
-    const rGov = Math.random();
+    // 2. ZONA NOR-ORIENTAL (Popular, Santa Cruz, Manrique, Aranjuez)
+    // Historical: Machinery (Liberal/Conservador) very strong in Council.
+    // Paradox: Voted Pacto Historico in Congress 2022 (Petro wave) BUT Fico in 2023 (Security wave).
+    else if (['Popular', 'Santa Cruz', 'Manrique', 'Aranjuez'].some(c => comunaName.includes(c))) {
+        
+        // Spectrum tends to be Populist (Right or Left depending on candidate charisma)
+        spectrum = r > 0.5 ? PoliticalSpectrum.CentroDerecha : PoliticalSpectrum.Izquierda;
 
-    if (spectrum === PoliticalSpectrum.Derecha || spectrum === PoliticalSpectrum.CentroDerecha) {
-        governor = rGov > 0.2 ? GovernorVote.Rendon : GovernorVote.Suarez;
-    } else if (spectrum === PoliticalSpectrum.Izquierda || spectrum === PoliticalSpectrum.CentroIzquierda) {
-        // Left split vote often or went blank/Perez in absence of strong own candidate
-        governor = rGov > 0.5 ? GovernorVote.LuisPerez : GovernorVote.VotoEnBlanco;
-    } else {
-        // Center
-        if (rGov < 0.4) governor = GovernorVote.Suarez;
-        else if (rGov < 0.7) governor = GovernorVote.LuisPerez;
+        // Mayor 2023 (Fico won, but Upegui had ~15-20% pockets here)
+        if (r < 0.65) mayor = PoliticalParty.Creemos;
+        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Upegui strength
+        else mayor = PoliticalParty.Pacto;
+
+        // Governor 2023 (Luis Perez territory vs Machinery)
+        if (r < 0.45) governor = GovernorVote.LuisPerez;
+        else if (r < 0.70) governor = GovernorVote.Bedoya; // Machinery Liberal
+        else if (r < 0.85) governor = GovernorVote.Rendon;
+        else governor = GovernorVote.VotoEnBlanco;
+
+        // Congress 2022 (The "Petro" Wave was real here in E-14s)
+        if (r2 < 0.45) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.70) congress = PublicCorporationParty.PartidoLiberal; // Machinery
+        else if (r2 < 0.85) congress = PublicCorporationParty.PartidoConservador;
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        // Council 2023 (Return to Machinery/Coalitions)
+        council = r > 0.5 ? PublicCorporationParty.PartidoLiberal : PublicCorporationParty.ASI;
+        assembly = PublicCorporationParty.PartidoConservador;
+    }
+
+    // 3. ZONA NOR-OCCIDENTAL (Castilla, 12 de Octubre, Robledo)
+    // Historical: Mixed. Robledo is Fajardo/Green stronghold historically, but shifting.
+    else if (['Castilla', 'Doce de Octubre', 'Robledo'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.CentroIzquierda;
+
+        // Mayor 2023
+        if (r < 0.70) mayor = PoliticalParty.Creemos;
+        else if (r < 0.85) mayor = PoliticalParty.Independientes;
+        else mayor = PoliticalParty.Pacto;
+
+        // Governor 2023 (Split)
+        if (r < 0.35) governor = GovernorVote.LuisPerez;
+        else if (r < 0.65) governor = GovernorVote.Suarez;
         else governor = GovernorVote.Rendon;
+
+        // Congress 2022
+        if (r2 < 0.35) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.60) congress = PublicCorporationParty.AlianzaVerde; // Strong here
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        council = PublicCorporationParty.AlianzaVerde;
+        assembly = PublicCorporationParty.PartidoLiberal;
     }
 
-    // --- 3. PUBLIC CORPORATIONS (Council/Assembly 2023 & Congress 2022) ---
-    // Helper to generate party based on bias
-    const getParty = (bias: 'Right' | 'Left' | 'Center' | 'Mixed'): PublicCorporationParty => {
-        const r = Math.random();
-        if (bias === 'Right') {
-             if (r < 0.6) return PublicCorporationParty.Creemos;
-             if (r < 0.9) return PublicCorporationParty.CentroDemocratico;
-             return PublicCorporationParty.PartidoConservador;
-        }
-        if (bias === 'Left') {
-            if (r < 0.6) return PublicCorporationParty.PactoHistorico;
-            if (r < 0.8) return PublicCorporationParty.AlianzaVerde;
-            return PublicCorporationParty.ASI; // Often Independent lists
-        }
-        if (bias === 'Center') {
-            if (r < 0.5) return PublicCorporationParty.AlianzaVerde;
-            if (r < 0.8) return PublicCorporationParty.ASI;
-            return PublicCorporationParty.PartidoLiberal;
-        }
-        // Mixed (Strata 1-3 Machinery)
-        if (r < 0.3) return PublicCorporationParty.PartidoLiberal;
-        if (r < 0.5) return PublicCorporationParty.CentroDemocratico; // Popular right
-        if (r < 0.7) return PublicCorporationParty.Creemos;
-        if (r < 0.85) return PublicCorporationParty.PactoHistorico;
-        return PublicCorporationParty.ASI;
-    };
+    // 4. CENTRO ORIENTAL (Villa Hermosa, Buenos Aires, La Candelaria)
+    // Historical: Very mixed. High opinion vote in Buenos Aires, high machinery in Villa Hermosa.
+    else if (['Villa Hermosa', 'Buenos Aires', 'La Candelaria'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.Centro;
 
-    let bias: 'Right' | 'Left' | 'Center' | 'Mixed' = 'Mixed';
-    if (strata >= 5) bias = 'Right';
-    else if (age < 30 && strata <= 4) bias = 'Left'; // Youth vote
-    else if (strata === 4) bias = 'Center';
+        // Mayor 2023
+        if (r < 0.75) mayor = PoliticalParty.Creemos;
+        else if (r < 0.90) mayor = PoliticalParty.Centro; // Compromiso/Dignidad
+        else mayor = PoliticalParty.Independientes;
 
-    const council = getParty(bias);
-    
-    // Assembly tends to be more traditional (Liberal/Conservador machinery stronger than in Council)
-    let assembly = council;
-    if (Math.random() > 0.6) {
-         assembly = Math.random() > 0.5 ? PublicCorporationParty.PartidoConservador : PublicCorporationParty.PartidoLiberal;
+        // Governor 2023
+        if (r < 0.40) governor = GovernorVote.Suarez;
+        else if (r < 0.70) governor = GovernorVote.Rendon;
+        else governor = GovernorVote.LuisPerez;
+
+        // Congress 2022
+        if (r2 < 0.30) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.60) congress = PublicCorporationParty.AlianzaVerde;
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        council = PublicCorporationParty.AlianzaVerde;
     }
 
-    // Congress 2022 (Pacto was stronger then, CD always strong)
-    let congress = council;
-    if (bias === 'Left' || bias === 'Center') {
-        if (Math.random() > 0.3) congress = PublicCorporationParty.PactoHistorico; // 2022 Peak
-    } else if (bias === 'Right') {
-        congress = PublicCorporationParty.CentroDemocratico; // 2022 Peak for Senate
+    // 5. ZONA OCCIDENTAL Y CORREGIMIENTOS (San Javier, Guayabal, San Antonio, Altavista)
+    // Comuna 13 (San Javier) is a specific outlier (Complex security dynamics + Tourism + HipHop culture = Mixed Politics)
+    else {
+        // Includes San Javier, Guayabal, Corregimientos
+        spectrum = PoliticalSpectrum.CentroDerecha;
+
+        // Mayor
+        if (r < 0.70) mayor = PoliticalParty.Creemos;
+        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Quintero had support in peripheries
+        else mayor = PoliticalParty.Pacto;
+
+        // Governor
+        if (r < 0.40) governor = GovernorVote.LuisPerez; // Strong in corregimientos
+        else if (r < 0.70) governor = GovernorVote.Rendon;
+        else governor = GovernorVote.Bedoya;
+
+        // Congress 2022
+        if (r2 < 0.40) congress = PublicCorporationParty.PactoHistorico; // Comuna 13 strong for Petro
+        else if (r2 < 0.70) congress = PublicCorporationParty.PartidoConservador; // Itagui influence in Guayabal/San Antonio
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        council = PublicCorporationParty.PartidoConservador;
+        assembly = PublicCorporationParty.ASI;
     }
 
     return { mayor, spectrum, governor, council, assembly, congress };
@@ -479,7 +531,7 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       
       // Politics
-      const politics = getPoliticalProfile(strata, age);
+      const politics = getPoliticalProfile(strata, age, barrio.comuna);
 
       const pointPopulation = 95 + Math.floor(Math.random() * 15); 
 
