@@ -2,20 +2,20 @@ import React, { useState, useMemo } from 'react';
 import MapVisualizer from './components/MapVisualizer';
 import Dashboard from './components/Dashboard';
 import ArxivPaper from './components/ArxivPaper';
-import { generateMedellinData, processQuadtree } from './services/dataService';
+import { generateMedellinData, processKDTree } from './services/dataService';
 import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
   // 1. Generate Raw Points (Simulated Individuals)
-  // We use 12,000 points. Each point represents small cluster (~400 people).
-  const rawPoints = useMemo(() => generateMedellinData(12000), []);
+  // 20,000 points, each representing ~110 people. Total pop ~2.2M.
+  const rawPoints = useMemo(() => generateMedellinData(20000), []);
   
-  // 2. Process into Adaptive Grid (Quadtree Polygons)
-  // Target: ~20,000 inhabitants per grid cell.
-  // With 12,000 points * ~400 pop = ~4.8M total pop. 
-  // ~240 cells expected.
-  // The '1.2x' buffer in QuadtreeNode ensures we don't split 21k into tiny shards, keeping it closer to 20k.
-  const adaptiveGridData = useMemo(() => processQuadtree(rawPoints, 20000), [rawPoints]);
+  // 2. Process into K-D Tree Grid (Equivalent Population)
+  // Depth 8 = 2^8 = 256 cells.
+  // Each cell will have exactly 1/256 of the total population.
+  // If Total = 2.2M, each cell = ~8,600 people.
+  // Variance is minimized by the median split logic.
+  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 8), [rawPoints]);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);

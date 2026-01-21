@@ -43,7 +43,7 @@ const getEstimatedIncome = (strata: number): number => {
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
 
-// --- QUADTREE LOGIC FOR ADAPTIVE GRID ---
+// --- K-D TREE LOGIC FOR EQUIVALENT POPULATION GRID ---
 
 interface BoundingBox {
   minLat: number;
@@ -52,97 +52,14 @@ interface BoundingBox {
   maxLng: number;
 }
 
-class QuadtreeNode {
-  bounds: BoundingBox;
-  points: ZoneData[];
-  children: QuadtreeNode[];
-  maxPopulation: number;
-  currentPopulation: number;
-
-  constructor(bounds: BoundingBox, maxPopulation: number) {
-    this.bounds = bounds;
-    this.maxPopulation = maxPopulation;
-    this.currentPopulation = 0;
-    this.points = [];
-    this.children = [];
-  }
-
-  // Check if a point is within this node's bounds
-  contains(point: ZoneData): boolean {
-    return (
-      point.lat >= this.bounds.minLat &&
-      point.lat < this.bounds.maxLat &&
-      point.lng >= this.bounds.minLng &&
-      point.lng < this.bounds.maxLng
-    );
-  }
-
-  subdivide() {
-    const { minLat, maxLat, minLng, maxLng } = this.bounds;
-    const midLat = (minLat + maxLat) / 2;
-    const midLng = (minLng + maxLng) / 2;
-
-    const nw = new QuadtreeNode({ minLat: midLat, maxLat, minLng, maxLng: midLng }, this.maxPopulation);
-    const ne = new QuadtreeNode({ minLat: midLat, maxLat, minLng: midLng, maxLng }, this.maxPopulation);
-    const sw = new QuadtreeNode({ minLat, maxLat: midLat, minLng, maxLng: midLng }, this.maxPopulation);
-    const se = new QuadtreeNode({ minLat, maxLat: midLat, minLng: midLng, maxLng }, this.maxPopulation);
-
-    this.children = [nw, ne, sw, se];
-  }
-
-  insert(point: ZoneData): boolean {
-    if (!this.contains(point)) return false;
-
-    // If node is already subdivided, pass point to children
-    if (this.children.length > 0) {
-      for (const child of this.children) {
-        if (child.insert(point)) return true;
-      }
-      return false;
-    }
-
-    // Add point to this leaf node
-    this.points.push(point);
-    this.currentPopulation += point.population;
-
-    // Check if Population threshold is exceeded (Demographic Balance)
-    // We check if current population exceeds threshold significantly (1.2x) to avoid over-splitting 
-    // nodes that are "just right", helping to keep population counts more uniform.
-    if (this.currentPopulation > (this.maxPopulation * 1.2) && this.points.length > 4) {
-      this.subdivide();
-      
-      // Redistribute existing points to new children
-      for (const p of this.points) {
-        for (const child of this.children) {
-          child.insert(p);
-        }
-      }
-      
-      // Clear this node as it's no longer a leaf
-      this.points = [];
-      this.currentPopulation = 0;
-    }
-    return true;
-  }
-
-  // Collect all leaf nodes (the final zones)
-  getLeaves(): QuadtreeNode[] {
-    if (this.children.length > 0) {
-      return this.children.flatMap(child => child.getLeaves());
-    }
-    return this.points.length > 0 ? [this] : [];
-  }
-}
-
-// Function to aggregate data from a set of points in a node
-const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
-  const points = node.points;
+// Function to aggregate data from a set of points in a leaf node
+const aggregateNodeData = (points: ZoneData[], bounds: BoundingBox, index: number): ZoneData => {
   const count = points.length;
+  // Prevent division by zero if empty node (unlikely in K-D Tree but possible)
+  const safeCount = count || 1; 
   
   // Calculate Totals
   const totalPopulation = points.reduce((sum, p) => sum + p.population, 0);
-  // Prevent division by zero if empty node
-  const safeCount = count || 1; 
 
   const sumIncome = points.reduce((sum, p) => sum + p.householdIncome, 0);
   const sumAge = points.reduce((sum, p) => sum + p.avgAge, 0);
@@ -150,12 +67,11 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
   const sumEmployment = points.reduce((sum, p) => sum + p.employmentRate, 0);
 
   // Calculate Real Density (People per Area Unit)
-  const width = node.bounds.maxLng - node.bounds.minLng;
-  const height = node.bounds.maxLat - node.bounds.minLat;
+  const width = bounds.maxLng - bounds.minLng;
+  const height = bounds.maxLat - bounds.minLat;
   const area = width * height;
   
   // Normalization factor for visualization
-  // Adjusted for new population scales
   const densityMetric = (totalPopulation / area) / 800000000; 
 
   // Find Mode for Location Name
@@ -189,11 +105,11 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
    ).pop() || "Empleado";
 
   return {
-    id: `q-zone-${index}`,
+    id: `kd-zone-${index}-${Math.random().toString(36).substr(2, 5)}`,
     locationName: dominantLocation,
-    lat: (node.bounds.minLat + node.bounds.maxLat) / 2,
-    lng: (node.bounds.minLng + node.bounds.maxLng) / 2,
-    bounds: [[node.bounds.minLat, node.bounds.minLng], [node.bounds.maxLat, node.bounds.maxLng]],
+    lat: (bounds.minLat + bounds.maxLat) / 2,
+    lng: (bounds.minLng + bounds.maxLng) / 2,
+    bounds: [[bounds.minLat, bounds.minLng], [bounds.maxLat, bounds.maxLng]],
     
     density: Math.min(1, densityMetric), 
     
@@ -210,8 +126,69 @@ const aggregateNodeData = (node: QuadtreeNode, index: number): ZoneData => {
   };
 };
 
-export const processQuadtree = (rawPoints: ZoneData[], maxPopulationPerCell: number = 15000): ZoneData[] => {
-  // 1. Determine Bounding Box of all points
+// Recursive K-D Tree Builder
+const buildKDTree = (
+  points: ZoneData[], 
+  depth: number, 
+  bounds: BoundingBox, 
+  axis: 'lat' | 'lng'
+): ZoneData[] => {
+  // Base case: Reached target depth or no points left
+  if (depth === 0 || points.length === 0) {
+    return [aggregateNodeData(points, bounds, depth)];
+  }
+
+  // Sort points along the current axis
+  // Note: Sorting in place is efficient but we must clone if we want to preserve original order (here we don't care)
+  points.sort((a, b) => axis === 'lat' ? a.lat - b.lat : a.lng - b.lng);
+
+  // Find the Weighted Median (Split population exactly in half)
+  const totalPop = points.reduce((acc, p) => acc + p.population, 0);
+  const targetSplitPop = totalPop / 2;
+
+  let currentPopSum = 0;
+  let splitIndex = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    currentPopSum += points[i].population;
+    if (currentPopSum >= targetSplitPop) {
+      splitIndex = i;
+      break;
+    }
+  }
+
+  // The coordinate to split at. We use the point's coordinate at the split index.
+  const splitPoint = points[splitIndex];
+  const splitCoord = axis === 'lat' ? splitPoint.lat : splitPoint.lng;
+
+  // Create new Bounds for children
+  const boundsLeft = { ...bounds };
+  const boundsRight = { ...bounds };
+
+  if (axis === 'lat') {
+    boundsLeft.maxLat = splitCoord;
+    boundsRight.minLat = splitCoord;
+  } else {
+    boundsLeft.maxLng = splitCoord;
+    boundsRight.minLng = splitCoord;
+  }
+
+  // Split points
+  // Points at splitIndex go to Left to ensure coverage up to the line
+  const leftPoints = points.slice(0, splitIndex + 1);
+  const rightPoints = points.slice(splitIndex + 1);
+
+  // Alternate axis for next level
+  const nextAxis = axis === 'lat' ? 'lng' : 'lat';
+
+  return [
+    ...buildKDTree(leftPoints, depth - 1, boundsLeft, nextAxis),
+    ...buildKDTree(rightPoints, depth - 1, boundsRight, nextAxis)
+  ];
+};
+
+export const processKDTree = (rawPoints: ZoneData[], depth: number = 8): ZoneData[] => {
+  // 1. Determine Global Bounding Box
   let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
   
   rawPoints.forEach(p => {
@@ -221,8 +198,8 @@ export const processQuadtree = (rawPoints: ZoneData[], maxPopulationPerCell: num
     if (p.lng > maxLng) maxLng = p.lng;
   });
 
-  // Add a small buffer
-  const pad = 0.005;
+  // Small padding
+  const pad = 0.002;
   const bounds: BoundingBox = {
     minLat: minLat - pad,
     maxLat: maxLat + pad,
@@ -230,14 +207,9 @@ export const processQuadtree = (rawPoints: ZoneData[], maxPopulationPerCell: num
     maxLng: maxLng + pad
   };
 
-  // 2. Build Tree with Population Threshold
-  const qt = new QuadtreeNode(bounds, maxPopulationPerCell);
-  rawPoints.forEach(p => qt.insert(p));
-
-  // 3. Get Leaves and Aggregate
-  // Filter out leaves with 0 population (empty space) to clean up map
-  const leaves = qt.getLeaves();
-  return leaves.map((node, i) => aggregateNodeData(node, i)).filter(z => z.population > 0);
+  // 2. Start Recursive Build
+  // Axis starts with 'lat' (split horizontally first)
+  return buildKDTree(rawPoints, depth, bounds, 'lat');
 };
 
 
@@ -414,9 +386,9 @@ const COMUNA_PROFILES = [
   }
 ];
 
-export const generateMedellinData = (totalPoints: number = 10000): ZoneData[] => {
+export const generateMedellinData = (totalPoints: number = 20000): ZoneData[] => {
   const data: ZoneData[] = [];
-  // Increase point count significantly to allow fine-grained subdivision
+  // HIGH RESOLUTION: 20k points.
   const pointsPerComuna = Math.max(100, Math.floor(totalPoints / COMUNA_PROFILES.length));
 
   COMUNA_PROFILES.forEach((profile, profileIndex) => {
@@ -455,9 +427,9 @@ export const generateMedellinData = (totalPoints: number = 10000): ZoneData[] =>
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       const internet = getInternetAccess(strata);
 
-      // MUCH smaller population per point to allow "fluid" aggregation
-      // ~400 people per point
-      const pointPopulation = Math.floor(profile.densityFactor * 400 * randomRange(0.8, 1.2));
+      // CRITICAL: Uniform small population chunks (approx 100 people)
+      // This allows the K-D Tree to split with high precision.
+      const pointPopulation = 100 + Math.floor(Math.random() * 20); 
 
       data.push({
         id: `z-${profileIndex}-${i}`,
