@@ -186,26 +186,26 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                   >
                      {/* Persistent Tooltip on Hover */}
                      <Tooltip sticky direction="top" opacity={1} className="custom-map-tooltip">
-                        <div className="font-sans text-xs leading-tight">
-                            <span className="font-bold block text-sm">{zone.specificSector}</span>
-                            <span className="text-gray-500 uppercase tracking-wide text-[10px]">{zone.locationName}</span>
+                        <div className="font-sans text-xs leading-tight text-slate-700">
+                            <span className="font-bold block text-sm text-slate-900">{zone.specificSector}</span>
+                            <span className="text-slate-500 uppercase tracking-wide text-[10px]">{zone.locationName}</span>
                             <div className="mt-1 pt-1 border-t border-gray-200 flex gap-2">
                                 <span className="font-semibold text-blue-600">Estrato {zone.strata}</span>
                                 <span className="text-gray-400">|</span>
-                                <span>{zone.population} Hab.</span>
+                                <span className="text-slate-600">{zone.population} Hab.</span>
                             </div>
                         </div>
                      </Tooltip>
 
                      <Popup className="font-sans" closeButton={false} minWidth={280} maxWidth={320}>
-                        <div className="relative">
+                        <div className="relative text-slate-700">
                            <div className="flex justify-between items-start mb-2">
                                 <div>
                                   {/* Detailed Naming */}
-                                  <strong className="block text-gray-900 text-sm font-bold leading-tight">
+                                  <strong className="block text-slate-900 text-sm font-bold leading-tight">
                                     {zone.specificSector}
                                   </strong>
-                                  <span className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                  <span className="text-[10px] text-slate-500 uppercase tracking-wide">
                                     {zone.locationName}
                                   </span>
                                 </div>
@@ -247,13 +247,13 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
       </MapContainer>
       
       {/* Legend Overlay */}
-      <div className="absolute bottom-6 right-6 z-[1000] bg-white/90 backdrop-blur p-4 rounded-lg shadow-xl border border-gray-200 max-w-xs">
-         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Leyenda: {activeLayer}</h4>
-         <div className="flex flex-col gap-1 text-xs max-h-48 overflow-y-auto">
+      <div className="absolute bottom-6 right-6 z-[1000] bg-white/95 backdrop-blur-md p-4 rounded-lg shadow-2xl border border-slate-200 max-w-xs text-slate-800">
+         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 border-b border-slate-100 pb-2">Leyenda: {activeLayer}</h4>
+         <div className="flex flex-col gap-1 text-xs max-h-48 overflow-y-auto pr-1 legend-scroll">
             {activeLayer === MapLayer.Density && (
                 <div className="flex items-center gap-2">
                     <div className="w-full h-3 bg-gradient-to-r from-blue-500 via-green-600 via-yellow-500 via-orange-500 to-red-900 rounded"></div>
-                    <div className="flex justify-between w-full text-[10px] text-gray-600 mt-1">
+                    <div className="flex justify-between w-full text-[10px] text-slate-600 mt-1">
                         <span>Disperso (Grande)</span>
                         <span>Denso (Pequeño)</span>
                     </div>
@@ -262,13 +262,13 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             {activeLayer === MapLayer.Strata && (
                 <div className="flex items-center gap-2">
                     <div className="w-24 h-3 bg-gradient-to-r from-red-600 via-yellow-500 to-green-600 rounded"></div>
-                    <span className="text-gray-700">Estrato 1 &rarr; 6</span>
+                    <span className="text-slate-700">Estrato 1 &rarr; 6</span>
                 </div>
             )}
             {activeLayer === MapLayer.Education && (
                 <div className="flex items-center gap-2">
                     <div className="w-24 h-3 bg-gradient-to-r from-slate-300 to-blue-700 rounded"></div>
-                    <span className="text-gray-700">Básico &rarr; Posgrado</span>
+                    <span className="text-slate-700">Básico &rarr; Posgrado</span>
                 </div>
             )}
             {activeLayer === MapLayer.Interest && (
@@ -284,7 +284,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             {activeLayer === MapLayer.Age && (
                <div className="flex items-center gap-2">
                    <div className="w-24 h-3 bg-gradient-to-r from-orange-100 to-amber-900 rounded"></div>
-                   <span className="text-gray-700">Joven &rarr; Mayor</span>
+                   <span className="text-slate-700">Joven &rarr; Mayor</span>
                </div>
            )}
            {activeLayer === MapLayer.Voting && (
