@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MapLayer, ZoneData } from '../types';
+import { MapLayer, ZoneData, PoliticalSpectrum } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
@@ -17,12 +17,14 @@ interface DashboardProps {
   setStrataFilter: (val: string) => void;
   comunaFilter: string;
   setComunaFilter: (val: string) => void;
+  spectrumFilter: string;
+  setSpectrumFilter: (val: string) => void;
   comunaOptions: string[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   activeLayer, setActiveLayer, selectedZone, onOpenPaper,
-  strataFilter, setStrataFilter, comunaFilter, setComunaFilter, comunaOptions
+  strataFilter, setStrataFilter, comunaFilter, setComunaFilter, spectrumFilter, setSpectrumFilter, comunaOptions
 }) => {
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
@@ -143,6 +145,20 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div>
+             <label className="block text-xs font-medium text-slate-600 mb-1">Espectro Político</label>
+             <select
+                value={spectrumFilter}
+                onChange={(e) => setSpectrumFilter(e.target.value)}
+                className="w-full text-xs p-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 block"
+             >
+                <option value="all">Todo el Espectro</option>
+                {Object.values(PoliticalSpectrum).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                ))}
+             </select>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Filtrar por Zona / Comuna</label>
             <select
               value={comunaFilter}
@@ -218,16 +234,33 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
             
-            {/* Political Profile Detailed */}
+            {/* Political Profile Detailed (Enhanced) */}
             <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 shadow-inner">
                <h3 className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                   <Vote size={14} /> Perfil Electoral (Zona)
+                   <Vote size={14} /> Distribución de Fuerza (Alcaldía)
                </h3>
+               
+               {/* 1st, 2nd, 3rd Force Visualization */}
+               <div className="space-y-3 mb-4">
+                  {selectedZone.voteBreakdown && selectedZone.voteBreakdown.map((vote, idx) => (
+                      <div key={idx} className="relative">
+                          <div className="flex justify-between text-xs mb-1 text-slate-700">
+                             <span className="font-semibold">{idx + 1}. {vote.party}</span>
+                             <span className="font-mono">{vote.percent}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${idx === 0 ? 'bg-indigo-600' : idx === 1 ? 'bg-indigo-400' : 'bg-indigo-300'}`} 
+                                style={{width: `${vote.percent}%`}}
+                              ></div>
+                          </div>
+                      </div>
+                  ))}
+               </div>
+
+               <div className="border-t border-slate-200 my-3"></div>
+
                <div className="space-y-2 text-xs">
-                   <div className="flex justify-between border-b border-slate-200 pb-1">
-                       <span className="text-slate-500">Alcaldía '23</span>
-                       <span className="font-semibold text-indigo-700">{selectedZone.votingPreference}</span>
-                   </div>
                    <div className="flex justify-between border-b border-slate-200 pb-1">
                        <span className="text-slate-500">Gobernación '23</span>
                        <span className="font-semibold text-blue-800 text-right">{selectedZone.votingGovernor}</span>
@@ -239,6 +272,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                    <div className="flex justify-between border-b border-slate-200 pb-1">
                        <span className="text-slate-500">Congreso '22</span>
                        <span className="font-semibold text-slate-800">{selectedZone.votingCongress}</span>
+                   </div>
+                   <div className="flex justify-between pt-1">
+                       <span className="text-slate-500">Espectro</span>
+                       <span className="font-bold text-slate-900 uppercase tracking-tight">{selectedZone.politicalSpectrum}</span>
                    </div>
                </div>
             </div>

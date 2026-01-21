@@ -81,6 +81,7 @@ export interface ZoneData {
   
   // Voting Data (Comprehensive)
   votingPreference: PoliticalParty; // Mayor 2023
+  voteBreakdown: { party: string; percent: number }[]; // Top 3 forces
   votingGovernor: GovernorVote; // Governor 2023
   votingCouncil: PublicCorporationParty; // City Council 2023
   votingAssembly: PublicCorporationParty; // Assembly 2023

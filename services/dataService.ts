@@ -28,6 +28,24 @@ const getMode = <T>(array: T[]): T => {
     return maxEl;
 };
 
+// Calculate top 3 vote getters
+const getVoteBreakdown = (votes: PoliticalParty[]): { party: string; percent: number }[] => {
+    if (votes.length === 0) return [];
+    const counts: Record<string, number> = {};
+    votes.forEach(v => {
+        counts[v] = (counts[v] || 0) + 1;
+    });
+    
+    const total = votes.length;
+    return Object.entries(counts)
+        .map(([party, count]) => ({
+            party,
+            percent: parseFloat(((count / total) * 100).toFixed(1))
+        }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 3);
+};
+
 const randomGaussian = () => {
   let u = 0, v = 0;
   while (u === 0) u = Math.random(); 
@@ -453,6 +471,9 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const dominantAssembly = getMode(points.map(p => p.votingAssembly)) || PublicCorporationParty.ASI;
   const dominantCongress = getMode(points.map(p => p.votingCongress)) || PublicCorporationParty.ASI;
 
+  // New: Calculate vote breakdown for this cluster
+  const voteBreakdown = getVoteBreakdown(points.map(p => p.votingPreference));
+
   return {
     id: `z-${index}`,
     locationName: realBarrio.comuna,
@@ -482,6 +503,7 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     
     // Politics (Aggregated)
     votingPreference: dominantParty,
+    voteBreakdown: voteBreakdown,
     votingGovernor: dominantGovernor,
     votingCouncil: dominantCouncil,
     votingAssembly: dominantAssembly,
@@ -560,6 +582,7 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
         
         // Mapped Politics
         votingPreference: politics.mayor,
+        voteBreakdown: [], // Calculated in aggregation
         votingGovernor: politics.governor,
         votingCouncil: politics.council,
         votingAssembly: politics.assembly,

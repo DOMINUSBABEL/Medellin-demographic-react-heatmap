@@ -24,6 +24,7 @@ const App: React.FC = () => {
   
   const [strataFilter, setStrataFilter] = useState<string>('all'); 
   const [comunaFilter, setComunaFilter] = useState<string>('all');
+  const [spectrumFilter, setSpectrumFilter] = useState<string>('all');
 
   // Extract unique Comuna names for the dropdown (from the aggregated grid)
   const comunaOptions = useMemo(() => {
@@ -46,9 +47,15 @@ const App: React.FC = () => {
         matchesComuna = item.locationName === comunaFilter;
       }
 
-      return matchesStrata && matchesComuna;
+      // 3. Filter by Political Spectrum
+      let matchesSpectrum = true;
+      if (spectrumFilter !== 'all') {
+          matchesSpectrum = item.politicalSpectrum === spectrumFilter;
+      }
+
+      return matchesStrata && matchesComuna && matchesSpectrum;
     });
-  }, [adaptiveGridData, strataFilter, comunaFilter]);
+  }, [adaptiveGridData, strataFilter, comunaFilter, spectrumFilter]);
 
   const handleZoneSelect = (zone: ZoneData | null) => {
     setSelectedZone(zone);
@@ -69,6 +76,8 @@ const App: React.FC = () => {
           setStrataFilter={setStrataFilter}
           comunaFilter={comunaFilter}
           setComunaFilter={setComunaFilter}
+          spectrumFilter={spectrumFilter}
+          setSpectrumFilter={setSpectrumFilter}
           comunaOptions={comunaOptions}
         />
       </div>
