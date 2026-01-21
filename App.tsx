@@ -7,15 +7,15 @@ import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
   // 1. Generate Raw Points (Simulated Individuals)
-  // 20,000 points, each representing ~110 people. Total pop ~2.2M.
-  const rawPoints = useMemo(() => generateMedellinData(20000), []);
+  // To achieve ~4000 people per cell with Depth 9 (512 cells), we need Total Pop ~2,048,000.
+  // Using ~21,000 points with avg weight of 100 people/point gives ~2.1M total.
+  const rawPoints = useMemo(() => generateMedellinData(21000), []);
   
   // 2. Process into K-D Tree Grid (Equivalent Population)
-  // Depth 8 = 2^8 = 256 cells.
-  // Each cell will have exactly 1/256 of the total population.
-  // If Total = 2.2M, each cell = ~8,600 people.
-  // Variance is minimized by the median split logic.
-  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 8), [rawPoints]);
+  // Depth 9 = 2^9 = 512 cells.
+  // 2,100,000 / 512 = ~4,100 people per cell.
+  // This fits the requirement of ~4000 (+/- 300) per quadrant.
+  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 9), [rawPoints]);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
