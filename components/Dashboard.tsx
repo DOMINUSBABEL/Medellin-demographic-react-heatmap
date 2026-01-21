@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass, Building, Mail } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass, Building, Mail, Vote, Flag } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -50,6 +50,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     { id: MapLayer.Education, label: 'Nivel Educativo', icon: GraduationCap },
     { id: MapLayer.Age, label: 'Distribución Edad', icon: Activity },
     { id: MapLayer.Interest, label: 'Intereses Sociales', icon: Layers },
+    { id: MapLayer.Voting, label: 'Votación 2023', icon: Vote },
+    { id: MapLayer.Spectrum, label: 'Espectro Político', icon: Flag },
   ];
 
   const getInternetScore = (type: string) => {
@@ -283,9 +285,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <span className="text-xs text-slate-500 font-medium">Ingreso Promedio</span>
                     <span className="font-mono font-bold text-slate-700">{formatCOP(selectedZone.householdIncome)}</span>
                 </div>
-                 <div className="flex justify-between items-center">
+                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-xs text-slate-500 font-medium">Conectividad</span>
                     <span className="font-medium text-xs text-slate-700 text-right">{selectedZone.internetAccess}</span>
+                </div>
+                 <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 font-medium">Tendencia Política</span>
+                    <span className="font-medium text-xs text-indigo-700 text-right">{selectedZone.votingPreference}</span>
                 </div>
             </div>
 

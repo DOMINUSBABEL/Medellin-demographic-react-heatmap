@@ -1,4 +1,4 @@
-import { ZoneData, EducationLevel, SocialInterest } from '../types';
+import { ZoneData, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum } from '../types';
 import { Delaunay } from 'd3-delaunay';
 
 // --- HELPER FUNCTIONS ---
@@ -9,6 +9,23 @@ const randomEnum = <T>(anEnum: T): T[keyof T] => {
   const enumValues = Object.values(anEnum as object) as unknown as T[keyof T][];
   const randomIndex = Math.floor(Math.random() * enumValues.length);
   return enumValues[randomIndex];
+};
+
+const getMode = <T>(array: T[]): T => {
+    if (array.length === 0) return null as unknown as T;
+    const modeMap: Map<T, number> = new Map();
+    let maxEl = array[0], maxCount = 1;
+    for (const item of array) {
+        let el = modeMap.get(item);
+        if (el === undefined) el = 0;
+        el++;
+        modeMap.set(item, el);
+        if (el > maxCount) {
+            maxEl = item;
+            maxCount = el;
+        }
+    }
+    return maxEl;
 };
 
 const randomGaussian = () => {
@@ -35,6 +52,39 @@ const getEstimatedIncome = (strata: number): number => {
   const variance = base * varianceFactor; 
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
+
+// --- POLITICS GENERATOR ---
+const getPoliticalData = (strata: number, age: number): { party: PoliticalParty, spectrum: PoliticalSpectrum } => {
+    const rand = Math.random();
+    
+    // Logic based on Medellin 2023 Elections (Fico landslide, specific pockets of opposition)
+    
+    // High Strata (El Poblado, Laureles) - Heavily Right/Center-Right
+    if (strata >= 5) {
+        if (rand < 0.80) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
+        if (rand < 0.90) return { party: PoliticalParty.Centro, spectrum: PoliticalSpectrum.CentroDerecha };
+        return { party: PoliticalParty.VotoEnBlanco, spectrum: PoliticalSpectrum.Centro };
+    }
+
+    // Middle Strata (Belén, Buenos Aires, América)
+    if (strata === 3 || strata === 4) {
+        if (rand < 0.65) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
+        if (rand < 0.80) return { party: PoliticalParty.Centro, spectrum: PoliticalSpectrum.Centro };
+        if (rand < 0.90) return { party: PoliticalParty.Independientes, spectrum: PoliticalSpectrum.CentroIzquierda };
+        return { party: PoliticalParty.Pacto, spectrum: PoliticalSpectrum.Izquierda };
+    }
+
+    // Lower Strata (Popular, Santa Cruz, Manrique) - Mixed, higher Populism/Left presence but still Fico dominant in 2023
+    if (strata <= 2) {
+        if (rand < 0.50) return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.CentroDerecha };
+        if (rand < 0.75) return { party: PoliticalParty.Independientes, spectrum: PoliticalSpectrum.CentroIzquierda };
+        if (rand < 0.90) return { party: PoliticalParty.Pacto, spectrum: PoliticalSpectrum.Izquierda };
+        return { party: PoliticalParty.VotoEnBlanco, spectrum: PoliticalSpectrum.Centro };
+    }
+
+    return { party: PoliticalParty.Creemos, spectrum: PoliticalSpectrum.Derecha };
+};
+
 
 // --- NOMENCLATURE & ADDRESS SYSTEM ---
 
@@ -281,6 +331,10 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const dominantEducation = points[0]?.educationLevel || EducationLevel.Secondary;
   const dominantInternet = points[0]?.internetAccess || "HFC";
   const dominantOccupation = points[0]?.mainOccupation || "Empleado";
+  
+  // Calculate categorical modes for politics
+  const dominantParty = getMode(points.map(p => p.votingPreference)) || PoliticalParty.VotoEnBlanco;
+  const dominantSpectrum = getMode(points.map(p => p.politicalSpectrum)) || PoliticalSpectrum.Centro;
 
   return {
     id: `z-${index}`,
@@ -307,7 +361,11 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     topInterest: dominantInterest,
     educationLevel: dominantEducation,
     mainOccupation: dominantOccupation,
-    internetAccess: dominantInternet
+    internetAccess: dominantInternet,
+    
+    // Politics
+    votingPreference: dominantParty,
+    politicalSpectrum: dominantSpectrum
   };
 };
 
@@ -352,6 +410,9 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
       const baseEmployment = 0.82 + (strata * 0.015) - (age > 60 ? 0.4 : 0) - (age < 22 ? 0.3 : 0);
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       
+      // Politics
+      const politics = getPoliticalData(strata, age);
+
       // Weight per point adjusted for 26k points -> ~2.6M total pop
       const pointPopulation = 95 + Math.floor(Math.random() * 15); 
 
@@ -376,7 +437,9 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
         topInterest: interest,
         householdIncome: income,
         employmentRate: employmentRate,
-        internetAccess: getInternetAccess(strata)
+        internetAccess: getInternetAccess(strata),
+        votingPreference: politics.party,
+        politicalSpectrum: politics.spectrum
       });
     }
   });

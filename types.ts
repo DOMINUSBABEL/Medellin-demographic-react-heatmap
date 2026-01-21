@@ -16,6 +16,22 @@ export enum EducationLevel {
   Postgrad = 'Posgrado'
 }
 
+export enum PoliticalParty {
+  Creemos = 'Creemos (Fico)',
+  Independientes = 'Independientes (Upegui)',
+  Pacto = 'Pacto Histórico',
+  Centro = 'Compromiso / Centro',
+  VotoEnBlanco = 'Voto en Blanco'
+}
+
+export enum PoliticalSpectrum {
+  Derecha = 'Derecha',
+  CentroDerecha = 'Centro-Derecha',
+  Centro = 'Centro',
+  CentroIzquierda = 'Centro-Izquierda',
+  Izquierda = 'Izquierda'
+}
+
 export interface ZoneData {
   id: string;
   locationName: string; // Comuna Name
@@ -45,6 +61,10 @@ export interface ZoneData {
   employmentRate: number; 
   internetAccess: string; 
   
+  // Voting Data 2023
+  votingPreference: PoliticalParty;
+  politicalSpectrum: PoliticalSpectrum;
+  
   _barrioSource?: string;
 }
 
@@ -53,5 +73,7 @@ export enum MapLayer {
   Age = 'age',
   Education = 'education',
   Strata = 'strata',
-  Interest = 'interest'
+  Interest = 'interest',
+  Voting = 'voting',
+  Spectrum = 'spectrum'
 }

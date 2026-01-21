@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Polygon, Popup, useMap, useMapEvents } from 'react-leaflet';
-import { ZoneData, MapLayer, EducationLevel, SocialInterest } from '../types';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Polygon, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { ZoneData, MapLayer, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum } from '../types';
 import L from 'leaflet';
-import { X, Compass, MapPin } from 'lucide-react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -22,13 +22,11 @@ interface MapVisualizerProps {
 const getColor = (zone: ZoneData, layer: MapLayer): string => {
   switch (layer) {
     case MapLayer.Density:
-      // High Density (Small Polygon) -> Red/Orange
-      // Low Density (Large Polygon) -> Blue/Green
-      if (zone.density > 0.8) return '#7f1d1d'; // Very High (Deep Red)
-      if (zone.density > 0.6) return '#c2410c'; // High (Orange Red)
-      if (zone.density > 0.4) return '#eab308'; // Medium (Yellow)
-      if (zone.density > 0.2) return '#15803d'; // Low (Green)
-      return '#3b82f6'; // Very Low (Blue - Large Areas)
+      if (zone.density > 0.8) return '#7f1d1d'; // Very High
+      if (zone.density > 0.6) return '#c2410c'; // High
+      if (zone.density > 0.4) return '#eab308'; // Medium
+      if (zone.density > 0.2) return '#15803d'; // Low
+      return '#3b82f6'; // Very Low
     case MapLayer.Age:
       return zone.avgAge > 55 ? '#7c2d12' : zone.avgAge > 40 ? '#ea580c' : zone.avgAge > 25 ? '#fdba74' : '#fef3c7';
     case MapLayer.Strata:
@@ -50,6 +48,23 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
         case SocialInterest.Travel: return '#f59e0b'; 
         default: return '#94a3b8';
       }
+    case MapLayer.Voting:
+        switch(zone.votingPreference) {
+            case PoliticalParty.Creemos: return '#581c87'; // Purple
+            case PoliticalParty.Independientes: return '#eab308'; // Yellow
+            case PoliticalParty.Pacto: return '#be123c'; // Red
+            case PoliticalParty.Centro: return '#10b981'; // Green
+            default: return '#94a3b8';
+        }
+    case MapLayer.Spectrum:
+        switch(zone.politicalSpectrum) {
+            case PoliticalSpectrum.Derecha: return '#1e3a8a'; // Dark Blue
+            case PoliticalSpectrum.CentroDerecha: return '#3b82f6'; // Blue
+            case PoliticalSpectrum.Centro: return '#10b981'; // Green
+            case PoliticalSpectrum.CentroIzquierda: return '#f59e0b'; // Orange
+            case PoliticalSpectrum.Izquierda: return '#dc2626'; // Red
+            default: return '#94a3b8';
+        }
     default:
       return '#3b82f6';
   }
@@ -74,10 +89,21 @@ const MapEvents: React.FC<{ onDeselect: () => void }> = ({ onDeselect }) => {
 }
 
 const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZoneSelect, selectedZone }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const center: [number, number] = [6.2442, -75.5812];
 
   return (
-    <div className="h-full w-full relative z-0">
+    <div className={`${isFullScreen ? 'fixed inset-0 z-[5000]' : 'relative h-full w-full z-0'}`}>
+      
+      {/* Full Screen Toggle Button */}
+      <button 
+        onClick={() => setIsFullScreen(!isFullScreen)}
+        className="absolute top-4 right-4 z-[10000] bg-white text-slate-800 p-2 rounded-lg shadow-xl hover:bg-slate-100 transition-colors border border-gray-300"
+        title={isFullScreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
+      >
+        {isFullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+      </button>
+
       <MapContainer 
         center={center} 
         zoom={13} 
@@ -94,6 +120,11 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
             const isSelected = selectedZone?.id === zone.id;
             const fillColor = getColor(zone, activeLayer);
             
+            // Define styles based on state
+            const baseWeight = isSelected ? 3 : 1;
+            const baseColor = isSelected ? '#ffffff' : '#333333'; // White if selected, Dark Grey if not
+            const baseOpacity = isSelected ? 0.85 : 0.6;
+
             if (zone.polygon && zone.polygon.length > 0) {
                return (
                   <Polygon
@@ -101,17 +132,48 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                      positions={zone.polygon}
                      pathOptions={{
                         fillColor: fillColor,
-                        color: isSelected ? '#ffffff' : '#111111',
-                        weight: isSelected ? 2 : 0.5,
-                        fillOpacity: isSelected ? 0.9 : 0.6,
+                        color: baseColor,
+                        weight: baseWeight,
+                        fillOpacity: baseOpacity,
                      }}
                      eventHandlers={{
                         click: (e) => {
                            L.DomEvent.stopPropagation(e);
                            onZoneSelect(zone);
+                        },
+                        mouseover: (e) => {
+                           const layer = e.target;
+                           layer.setStyle({
+                               weight: 3,
+                               color: '#d1d5db', // Light gray hover
+                               fillOpacity: 0.9
+                           });
+                           layer.bringToFront();
+                        },
+                        mouseout: (e) => {
+                           const layer = e.target;
+                           // Reset to base styles
+                           layer.setStyle({
+                               weight: isSelected ? 3 : 1,
+                               color: isSelected ? '#ffffff' : '#333333',
+                               fillOpacity: isSelected ? 0.85 : 0.6
+                           });
                         }
                      }}
                   >
+                     {/* Persistent Tooltip on Hover */}
+                     <Tooltip sticky direction="top" opacity={1} className="custom-map-tooltip">
+                        <div className="font-sans text-xs leading-tight">
+                            <span className="font-bold block text-sm">{zone.specificSector}</span>
+                            <span className="text-gray-500 uppercase tracking-wide text-[10px]">{zone.locationName}</span>
+                            <div className="mt-1 pt-1 border-t border-gray-200 flex gap-2">
+                                <span className="font-semibold text-blue-600">Estrato {zone.strata}</span>
+                                <span className="text-gray-400">|</span>
+                                <span>{zone.population} Hab.</span>
+                            </div>
+                        </div>
+                     </Tooltip>
+
                      <Popup className="font-sans" closeButton={false} minWidth={280} maxWidth={320}>
                         <div className="relative">
                            <div className="flex justify-between items-start mb-2">
@@ -148,9 +210,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                                 <span>Población (Eq):</span> <span className="font-medium text-gray-900">{zone.population} hab</span>
                                 <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
                                 <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
-                                <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
-                                    ${(zone.householdIncome/1000000).toFixed(1)}M
-                                </span>
+                                <span>Tendencia:</span> <span className="font-bold text-indigo-700">{zone.votingPreference}</span>
                             </div>
                         </div>
                      </Popup>
@@ -200,6 +260,26 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                <div className="flex items-center gap-2">
                    <div className="w-24 h-3 bg-gradient-to-r from-orange-100 to-amber-900 rounded"></div>
                    <span className="text-gray-700">Joven &rarr; Mayor</span>
+               </div>
+           )}
+           {activeLayer === MapLayer.Voting && (
+               <div className="flex flex-col gap-1">
+                   {Object.values(PoliticalParty).map(p => (
+                       <div key={p} className="flex items-center gap-1">
+                           <span className="w-3 h-3 rounded-full" style={{backgroundColor: getColor({votingPreference: p} as any, MapLayer.Voting)}}></span>
+                           <span>{p}</span>
+                       </div>
+                   ))}
+               </div>
+           )}
+           {activeLayer === MapLayer.Spectrum && (
+               <div className="flex flex-col gap-1">
+                   {Object.values(PoliticalSpectrum).map(p => (
+                       <div key={p} className="flex items-center gap-1">
+                           <span className="w-3 h-3 rounded-full" style={{backgroundColor: getColor({politicalSpectrum: p} as any, MapLayer.Spectrum)}}></span>
+                           <span>{p}</span>
+                       </div>
+                   ))}
                </div>
            )}
          </div>
