@@ -3,7 +3,7 @@ import { MapLayer, ZoneData } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
-import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass } from 'lucide-react';
+import { Layers, Users, GraduationCap, DollarSign, Activity, BrainCircuit, Loader2, MapPin, Wifi, Briefcase, TrendingUp, Filter, Compass, Building, Mail } from 'lucide-react';
 import { analyzeDemographics } from '../services/geminiService';
 
 interface DashboardProps {
@@ -52,7 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     { id: MapLayer.Interest, label: 'Intereses Sociales', icon: Layers },
   ];
 
-  // Helper to calculate internet score for chart
   const getInternetScore = (type: string) => {
     if (type.includes('Fibra')) return 100;
     if (type.includes('Alta')) return 80;
@@ -61,7 +60,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     return 20;
   };
 
-  // Prepare data for the new comparative chart
   const metricsData = useMemo(() => {
     if (!selectedZone) return [];
     
@@ -70,7 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     
     return [
       { 
-        name: 'Ingreso (Norm)', 
+        name: 'Ingreso', 
         value: incomeScore, 
         originalValue: formatCOP(selectedZone.householdIncome),
         fill: '#10b981' 
@@ -82,7 +80,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         fill: '#3b82f6' 
       },
       { 
-        name: 'Red (Calidad)', 
+        name: 'Conectividad', 
         value: getInternetScore(selectedZone.internetAccess), 
         originalValue: selectedZone.internetAccess,
         fill: '#8b5cf6' 
@@ -96,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="bg-slate-800 text-white text-xs p-2 rounded shadow-lg border border-slate-700">
           <p className="font-bold mb-1">{label}</p>
           <p className="text-emerald-400">
-            Valor: {payload[0].payload.originalValue || payload[0].value}
+            {payload[0].payload.originalValue || payload[0].value}
           </p>
         </div>
       );
@@ -119,7 +117,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         </h3>
         
         <div className="space-y-4">
-          {/* Strata Filter */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Rango de Estratos</label>
             <div className="flex rounded-md shadow-sm" role="group">
@@ -139,7 +136,6 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Comuna Filter */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Filtrar por Zona / Comuna</label>
             <select
@@ -198,23 +194,33 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {selectedZone.specificSector}
               </h2>
               
-              {/* Context Tag */}
-              <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 font-medium bg-slate-100 p-2 rounded-md">
-                <Compass size={14} className="text-slate-400" />
-                {selectedZone.geoContext}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.mainOccupation}</span>
-                <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-semibold">{selectedZone.educationLevel}</span>
+              {/* Detailed Address Box */}
+              <div className="mt-3 bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                  <div className="flex items-start gap-3">
+                      <div className="bg-blue-50 p-2 rounded text-blue-600">
+                          <Building size={16} />
+                      </div>
+                      <div className="flex-1">
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Dirección Estimada</div>
+                          <div className="text-sm font-semibold text-slate-800">{selectedZone.address}</div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                             <span className="flex items-center gap-1"><Mail size={10} /> CP: {selectedZone.postalCode}</span>
+                             <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded-full text-[10px] font-medium border border-slate-200">{selectedZone.landUseType}</span>
+                          </div>
+                      </div>
+                  </div>
               </div>
             </div>
 
             {/* Coordinates / Bounds Detail */}
-            <div className="bg-slate-50 p-3 rounded border border-slate-200 text-[10px] text-slate-500 font-mono">
-                <div className="uppercase font-bold mb-1 text-slate-400">Coordenadas Limítrofes (K-D Bounds)</div>
-                <div className="break-words leading-tight">
-                    {selectedZone.cardinalLimits}
+            <div className="bg-slate-50 p-3 rounded border border-slate-200 text-[10px] text-slate-500 font-mono flex justify-between">
+                <div>
+                   <span className="font-bold text-slate-400 block mb-1">EXTENSIÓN</span>
+                   {selectedZone.cardinalLimits}
+                </div>
+                <div className="text-right">
+                   <span className="font-bold text-slate-400 block mb-1">COORD CENTROIDE</span>
+                   {selectedZone.lat.toFixed(4)}, {selectedZone.lng.toFixed(4)}
                 </div>
             </div>
             
@@ -249,7 +255,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 )}
             </div>
 
-            {/* NEW: Comparative Metrics Chart */}
+            {/* Metrics Chart */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Activity size={14} /> Métricas Comparativas (Score)
@@ -271,14 +277,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             </div>
 
-            {/* Economic Indicators Section (Simplified) */}
+            {/* Economic Indicators Section */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner space-y-3">
-                {/* Income */}
                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-xs text-slate-500 font-medium">Ingreso Promedio</span>
                     <span className="font-mono font-bold text-slate-700">{formatCOP(selectedZone.householdIncome)}</span>
                 </div>
-                 {/* Internet */}
                  <div className="flex justify-between items-center">
                     <span className="text-xs text-slate-500 font-medium">Conectividad</span>
                     <span className="font-medium text-xs text-slate-700 text-right">{selectedZone.internetAccess}</span>
@@ -294,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
-      {/* Footer / Readme Trigger */}
+      {/* Footer */}
       <div className="p-4 border-t border-slate-200 bg-white">
         <button 
           onClick={onOpenPaper}

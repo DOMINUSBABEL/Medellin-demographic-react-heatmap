@@ -134,11 +134,10 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
                             
                             <div className="border-t border-gray-200 my-2"></div>
                             
-                            {/* New: Context & Boundaries Section */}
+                            {/* Precision Address */}
                             <div className="bg-slate-50 p-2 rounded mb-2 border border-slate-100">
-                                <div className="flex items-center gap-1 text-[10px] text-blue-700 font-semibold mb-1">
-                                  <Compass size={12} />
-                                  <span>{zone.geoContext}</span>
+                                <div className="text-[10px] text-blue-700 font-bold mb-0.5">
+                                  {zone.address}
                                 </div>
                                 <div className="text-[9px] text-slate-500 font-mono leading-tight">
                                   {zone.cardinalLimits}

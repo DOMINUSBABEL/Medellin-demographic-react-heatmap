@@ -19,31 +19,32 @@ export enum EducationLevel {
 export interface ZoneData {
   id: string;
   locationName: string; // Comuna Name
-  specificSector: string; // Specific Barrio or Sector (New)
+  specificSector: string; // Specific Barrio Name (Verified)
   
   lat: number;
   lng: number;
   
-  // Changed from fixed bounds to flexible polygon
   polygon: [number, number][]; 
   
-  // New: Human readable boundary limits
+  // Precision Metadata
   cardinalLimits: string; 
-  geoContext: string; // "West Bank", "Northern Hills", etc.
+  geoContext: string;
+  address: string; // New: Estimated Nomenclature (e.g., Calla 10 # 43A)
+  postalCode: string; // New: Estimated Postal Code
+  landUseType: string; // New: Residential, Commercial, Mixed, Industrial
 
   density: number; // 0-1 normalized
-  population: number; // Est. count
+  population: number; 
   avgAge: number;
   mainOccupation: string;
   educationLevel: EducationLevel;
   topInterest: SocialInterest;
-  strata: number; // 1-6 Socio-economic strata in Colombia
+  strata: number; 
   
-  householdIncome: number; // Monthly COP
-  employmentRate: number; // 0.0 to 1.0
-  internetAccess: string; // Type of connection
+  householdIncome: number; 
+  employmentRate: number; 
+  internetAccess: string; 
   
-  // Internal helper for aggregation
   _barrioSource?: string;
 }
 
