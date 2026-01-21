@@ -7,15 +7,15 @@ import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
   // 1. Generate Raw Points (Simulated Individuals)
-  // To achieve ~4000 people per cell with Depth 9 (512 cells), we need Total Pop ~2,048,000.
-  // Using ~21,000 points with avg weight of 100 people/point gives ~2.1M total.
-  const rawPoints = useMemo(() => generateMedellinData(21000), []);
+  // Target: ~2500 people per cell.
+  // Calculation: Depth 10 = 1024 cells.
+  // 1024 cells * 2550 avg pop = ~2,611,200 Total Simulated Population.
+  // Using 26,000 points with weight ~100 gives exactly this scale.
+  const rawPoints = useMemo(() => generateMedellinData(26000), []);
   
-  // 2. Process into K-D Tree Grid (Equivalent Population)
-  // Depth 9 = 2^9 = 512 cells.
-  // 2,100,000 / 512 = ~4,100 people per cell.
-  // This fits the requirement of ~4000 (+/- 300) per quadrant.
-  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 9), [rawPoints]);
+  // 2. Process into K-D Tree Grid (High Resolution)
+  // Depth 10 provides 1024 distinct micro-zones.
+  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 10), [rawPoints]);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
