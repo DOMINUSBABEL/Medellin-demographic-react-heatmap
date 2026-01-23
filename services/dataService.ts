@@ -29,7 +29,7 @@ const getMode = <T>(array: T[]): T => {
 };
 
 // Calculate top 3 vote getters
-const getVoteBreakdown = (votes: PoliticalParty[]): { party: string; percent: number }[] => {
+const getVoteBreakdown = (votes: string[]): { party: string; percent: number }[] => {
     if (votes.length === 0) return [];
     const counts: Record<string, number> = {};
     votes.forEach(v => {
@@ -75,7 +75,8 @@ const getEstimatedIncome = (strata: number): number => {
 
 const getPoliticalProfile = (strata: number, age: number, comunaName: string) => {
     const r = Math.random(); // General Randomizer
-    const r2 = Math.random(); // Secondary Randomizer
+    const r2 = Math.random(); // Secondary Randomizer (for split ticket voting)
+    const r3 = Math.random(); // Tertiary
 
     let mayor = PoliticalParty.Creemos;
     let governor = GovernorVote.Rendon;
@@ -87,78 +88,74 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
     // --- LOGIC BASED ON MEDELLIN ELECTORAL GEOGRAPHY ---
 
     // 1. ZONA SUR-OCCIDENTE Y ELITES (Poblado, Laureles, Belén)
-    // Historical: Heavy Fico (80%+), Heavy Rendon, Heavy CD/Creemos.
     if (['El Poblado', 'Laureles', 'Belén'].some(c => comunaName.includes(c))) {
         spectrum = PoliticalSpectrum.Derecha;
-        if (comunaName.includes('Laureles') && r > 0.85) spectrum = PoliticalSpectrum.Centro; // Small Fajardo pocket
+        if (comunaName.includes('Laureles') && r > 0.85) spectrum = PoliticalSpectrum.Centro;
 
-        // Mayor 2023 (Fico Landslide)
+        // Mayor 2023 (Fico Landslide 80%+)
         if (r < 0.85) mayor = PoliticalParty.Creemos;
-        else if (r < 0.95) mayor = PoliticalParty.Centro; // Compromiso
-        else mayor = PoliticalParty.VotoEnBlanco;
+        else if (r < 0.92) mayor = PoliticalParty.Centro; 
+        else if (r < 0.96) mayor = PoliticalParty.VotoEnBlanco;
+        else mayor = PoliticalParty.Independientes; // Very low here
 
-        // Governor 2023 (Rendon dominance in high strata)
-        if (r < 0.70) governor = GovernorVote.Rendon;
-        else if (r < 0.90) governor = GovernorVote.Suarez; // Continuity vote
+        // Governor 2023 
+        if (r < 0.75) governor = GovernorVote.Rendon;
+        else if (r < 0.90) governor = GovernorVote.Suarez;
         else governor = GovernorVote.Bedoya;
 
-        // Congress 2022 (CD Stronghold)
-        if (r < 0.60) congress = PublicCorporationParty.CentroDemocratico;
-        else if (r < 0.80) congress = PublicCorporationParty.Creemos; // Fico List
-        else if (r < 0.90) congress = PublicCorporationParty.AlianzaVerde; // Alternative vote
-        else congress = PublicCorporationParty.PartidoConservador;
+        // Congress 2022 
+        if (r2 < 0.70) congress = PublicCorporationParty.CentroDemocratico;
+        else if (r2 < 0.85) congress = PublicCorporationParty.Creemos; 
+        else if (r2 < 0.95) congress = PublicCorporationParty.AlianzaVerde;
+        else congress = PublicCorporationParty.PactoHistorico; // Very low
         
-        council = congress; // Correlation
+        council = r < 0.6 ? PublicCorporationParty.Creemos : PublicCorporationParty.CentroDemocratico;
+        assembly = PublicCorporationParty.CentroDemocratico;
     }
 
     // 2. ZONA NOR-ORIENTAL (Popular, Santa Cruz, Manrique, Aranjuez)
-    // Historical: Machinery (Liberal/Conservador) very strong in Council.
-    // Paradox: Voted Pacto Historico in Congress 2022 (Petro wave) BUT Fico in 2023 (Security wave).
     else if (['Popular', 'Santa Cruz', 'Manrique', 'Aranjuez'].some(c => comunaName.includes(c))) {
         
-        // Spectrum tends to be Populist (Right or Left depending on candidate charisma)
         spectrum = r > 0.5 ? PoliticalSpectrum.CentroDerecha : PoliticalSpectrum.Izquierda;
 
-        // Mayor 2023 (Fico won, but Upegui had ~15-20% pockets here)
-        if (r < 0.65) mayor = PoliticalParty.Creemos;
-        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Upegui strength
+        // Mayor 2023
+        if (r < 0.60) mayor = PoliticalParty.Creemos;
+        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Upegui strength here
         else mayor = PoliticalParty.Pacto;
 
-        // Governor 2023 (Luis Perez territory vs Machinery)
-        if (r < 0.45) governor = GovernorVote.LuisPerez;
-        else if (r < 0.70) governor = GovernorVote.Bedoya; // Machinery Liberal
-        else if (r < 0.85) governor = GovernorVote.Rendon;
+        // Governor 2023
+        if (r < 0.50) governor = GovernorVote.LuisPerez;
+        else if (r < 0.75) governor = GovernorVote.Bedoya; // Machinery
+        else if (r < 0.90) governor = GovernorVote.Rendon;
         else governor = GovernorVote.VotoEnBlanco;
 
-        // Congress 2022 (The "Petro" Wave was real here in E-14s)
+        // Congress 2022 (Petro Wave strong here)
         if (r2 < 0.45) congress = PublicCorporationParty.PactoHistorico;
-        else if (r2 < 0.70) congress = PublicCorporationParty.PartidoLiberal; // Machinery
+        else if (r2 < 0.70) congress = PublicCorporationParty.PartidoLiberal; 
         else if (r2 < 0.85) congress = PublicCorporationParty.PartidoConservador;
         else congress = PublicCorporationParty.CentroDemocratico;
 
-        // Council 2023 (Return to Machinery/Coalitions)
-        council = r > 0.5 ? PublicCorporationParty.PartidoLiberal : PublicCorporationParty.ASI;
+        council = r3 > 0.5 ? PublicCorporationParty.PartidoLiberal : PublicCorporationParty.ASI;
         assembly = PublicCorporationParty.PartidoConservador;
     }
 
     // 3. ZONA NOR-OCCIDENTAL (Castilla, 12 de Octubre, Robledo)
-    // Historical: Mixed. Robledo is Fajardo/Green stronghold historically, but shifting.
     else if (['Castilla', 'Doce de Octubre', 'Robledo'].some(c => comunaName.includes(c))) {
         spectrum = PoliticalSpectrum.CentroIzquierda;
 
         // Mayor 2023
-        if (r < 0.70) mayor = PoliticalParty.Creemos;
+        if (r < 0.65) mayor = PoliticalParty.Creemos;
         else if (r < 0.85) mayor = PoliticalParty.Independientes;
         else mayor = PoliticalParty.Pacto;
 
-        // Governor 2023 (Split)
-        if (r < 0.35) governor = GovernorVote.LuisPerez;
-        else if (r < 0.65) governor = GovernorVote.Suarez;
+        // Governor 2023
+        if (r < 0.40) governor = GovernorVote.LuisPerez;
+        else if (r < 0.70) governor = GovernorVote.Suarez;
         else governor = GovernorVote.Rendon;
 
         // Congress 2022
         if (r2 < 0.35) congress = PublicCorporationParty.PactoHistorico;
-        else if (r2 < 0.60) congress = PublicCorporationParty.AlianzaVerde; // Strong here
+        else if (r2 < 0.65) congress = PublicCorporationParty.AlianzaVerde; 
         else congress = PublicCorporationParty.CentroDemocratico;
 
         council = PublicCorporationParty.AlianzaVerde;
@@ -166,13 +163,12 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
     }
 
     // 4. CENTRO ORIENTAL (Villa Hermosa, Buenos Aires, La Candelaria)
-    // Historical: Very mixed. High opinion vote in Buenos Aires, high machinery in Villa Hermosa.
     else if (['Villa Hermosa', 'Buenos Aires', 'La Candelaria'].some(c => comunaName.includes(c))) {
         spectrum = PoliticalSpectrum.Centro;
 
         // Mayor 2023
-        if (r < 0.75) mayor = PoliticalParty.Creemos;
-        else if (r < 0.90) mayor = PoliticalParty.Centro; // Compromiso/Dignidad
+        if (r < 0.70) mayor = PoliticalParty.Creemos;
+        else if (r < 0.85) mayor = PoliticalParty.Centro; 
         else mayor = PoliticalParty.Independientes;
 
         // Governor 2023
@@ -186,27 +182,26 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         else congress = PublicCorporationParty.CentroDemocratico;
 
         council = PublicCorporationParty.AlianzaVerde;
+        assembly = PublicCorporationParty.ASI;
     }
 
-    // 5. ZONA OCCIDENTAL Y CORREGIMIENTOS (San Javier, Guayabal, San Antonio, Altavista)
-    // Comuna 13 (San Javier) is a specific outlier (Complex security dynamics + Tourism + HipHop culture = Mixed Politics)
+    // 5. ZONA OCCIDENTAL Y CORREGIMIENTOS
     else {
-        // Includes San Javier, Guayabal, Corregimientos
         spectrum = PoliticalSpectrum.CentroDerecha;
 
         // Mayor
-        if (r < 0.70) mayor = PoliticalParty.Creemos;
-        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Quintero had support in peripheries
+        if (r < 0.65) mayor = PoliticalParty.Creemos;
+        else if (r < 0.80) mayor = PoliticalParty.Independientes; 
         else mayor = PoliticalParty.Pacto;
 
         // Governor
-        if (r < 0.40) governor = GovernorVote.LuisPerez; // Strong in corregimientos
+        if (r < 0.45) governor = GovernorVote.LuisPerez; 
         else if (r < 0.70) governor = GovernorVote.Rendon;
         else governor = GovernorVote.Bedoya;
 
         // Congress 2022
-        if (r2 < 0.40) congress = PublicCorporationParty.PactoHistorico; // Comuna 13 strong for Petro
-        else if (r2 < 0.70) congress = PublicCorporationParty.PartidoConservador; // Itagui influence in Guayabal/San Antonio
+        if (r2 < 0.35) congress = PublicCorporationParty.PactoHistorico; 
+        else if (r2 < 0.65) congress = PublicCorporationParty.PartidoConservador; 
         else congress = PublicCorporationParty.CentroDemocratico;
 
         council = PublicCorporationParty.PartidoConservador;
@@ -233,9 +228,6 @@ const estimateAddressMedellin = (lat: number, lng: number): string => {
   const finalCalle = isSur ? Math.abs(Math.round(calleNum)) + " Sur" : Math.round(calleNum);
   const finalCarrera = Math.round(carreraNum);
   const placa = Math.floor(Math.random() * 90) + 1;
-  const placa2 = Math.floor(Math.random() * 90) + 1;
-
-  // Add occasional "Circular", "Transversal", "Diagonal" for realism
   const prefix = Math.random() > 0.9 ? (Math.random() > 0.5 ? 'Transversal' : 'Circular') : (Math.random() > 0.5 ? 'Calle' : 'Carrera');
 
   return `${prefix} ${Math.random() > 0.5 ? finalCalle : finalCarrera} # ${Math.random() > 0.5 ? finalCarrera : finalCalle} - ${placa}`;
@@ -471,8 +463,12 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const dominantAssembly = getMode(points.map(p => p.votingAssembly)) || PublicCorporationParty.ASI;
   const dominantCongress = getMode(points.map(p => p.votingCongress)) || PublicCorporationParty.ASI;
 
-  // New: Calculate vote breakdown for this cluster
-  const voteBreakdown = getVoteBreakdown(points.map(p => p.votingPreference));
+  // New: Calculate vote breakdown for ALL elections
+  const mayorBreakdown = getVoteBreakdown(points.map(p => p.votingPreference));
+  const governorBreakdown = getVoteBreakdown(points.map(p => p.votingGovernor));
+  const councilBreakdown = getVoteBreakdown(points.map(p => p.votingCouncil));
+  const assemblyBreakdown = getVoteBreakdown(points.map(p => p.votingAssembly));
+  const congressBreakdown = getVoteBreakdown(points.map(p => p.votingCongress));
 
   return {
     id: `z-${index}`,
@@ -503,11 +499,16 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     
     // Politics (Aggregated)
     votingPreference: dominantParty,
-    voteBreakdown: voteBreakdown,
+    mayorBreakdown,
     votingGovernor: dominantGovernor,
+    governorBreakdown,
     votingCouncil: dominantCouncil,
+    councilBreakdown,
     votingAssembly: dominantAssembly,
+    assemblyBreakdown,
     votingCongress: dominantCongress,
+    congressBreakdown,
+    
     politicalSpectrum: dominantSpectrum
   };
 };
@@ -582,11 +583,16 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
         
         // Mapped Politics
         votingPreference: politics.mayor,
-        voteBreakdown: [], // Calculated in aggregation
+        mayorBreakdown: [],
         votingGovernor: politics.governor,
+        governorBreakdown: [],
         votingCouncil: politics.council,
+        councilBreakdown: [],
         votingAssembly: politics.assembly,
+        assemblyBreakdown: [],
         votingCongress: politics.congress,
+        congressBreakdown: [],
+
         politicalSpectrum: politics.spectrum
       });
     }

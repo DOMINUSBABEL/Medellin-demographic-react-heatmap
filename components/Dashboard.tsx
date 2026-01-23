@@ -68,6 +68,28 @@ const Dashboard: React.FC<DashboardProps> = ({
     return 20;
   };
 
+  // Logic to determine which breakdown to show based on active layer
+  const getCurrentBreakdown = () => {
+      if (!selectedZone) return { title: '', data: [] };
+      
+      switch (activeLayer) {
+          case MapLayer.Governor:
+              return { title: "Gobernación '23", data: selectedZone.governorBreakdown };
+          case MapLayer.Council:
+              return { title: "Concejo '23", data: selectedZone.councilBreakdown };
+          case MapLayer.Assembly:
+              return { title: "Asamblea '23", data: selectedZone.assemblyBreakdown };
+          case MapLayer.Congress:
+              return { title: "Congreso '22", data: selectedZone.congressBreakdown };
+          case MapLayer.Voting:
+          default:
+              // Default to Mayor if density or other layer is selected, but prioritizing political context
+              return { title: "Alcaldía '23", data: selectedZone.mayorBreakdown };
+      }
+  };
+
+  const currentBreakdown = getCurrentBreakdown();
+
   const metricsData = useMemo(() => {
     if (!selectedZone) return [];
     
@@ -234,15 +256,15 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
             
-            {/* Political Profile Detailed (Enhanced) */}
+            {/* Political Profile Detailed (Enhanced Dynamic) */}
             <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 shadow-inner">
                <h3 className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                   <Vote size={14} /> Distribución de Fuerza (Alcaldía)
+                   <Vote size={14} /> Distribución: {currentBreakdown.title}
                </h3>
                
                {/* 1st, 2nd, 3rd Force Visualization */}
                <div className="space-y-3 mb-4">
-                  {selectedZone.voteBreakdown && selectedZone.voteBreakdown.map((vote, idx) => (
+                  {currentBreakdown.data && currentBreakdown.data.map((vote, idx) => (
                       <div key={idx} className="relative">
                           <div className="flex justify-between text-xs mb-1 text-slate-700">
                              <span className="font-semibold">{idx + 1}. {vote.party}</span>
@@ -256,6 +278,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                           </div>
                       </div>
                   ))}
+                  {currentBreakdown.data.length === 0 && (
+                      <div className="text-xs text-slate-400 text-center italic">Datos insuficientes para esta capa</div>
+                  )}
                </div>
 
                <div className="border-t border-slate-200 my-3"></div>

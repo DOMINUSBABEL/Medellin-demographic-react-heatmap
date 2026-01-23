@@ -81,11 +81,20 @@ export interface ZoneData {
   
   // Voting Data (Comprehensive)
   votingPreference: PoliticalParty; // Mayor 2023
-  voteBreakdown: { party: string; percent: number }[]; // Top 3 forces
+  mayorBreakdown: { party: string; percent: number }[]; // Mayor breakdown
+  
   votingGovernor: GovernorVote; // Governor 2023
+  governorBreakdown: { party: string; percent: number }[]; // Governor breakdown
+
   votingCouncil: PublicCorporationParty; // City Council 2023
+  councilBreakdown: { party: string; percent: number }[]; // Council breakdown
+
   votingAssembly: PublicCorporationParty; // Assembly 2023
+  assemblyBreakdown: { party: string; percent: number }[]; // Assembly breakdown
+
   votingCongress: PublicCorporationParty; // Congress (Senate/House) 2022
+  congressBreakdown: { party: string; percent: number }[]; // Congress breakdown
+
   politicalSpectrum: PoliticalSpectrum;
   
   _barrioSource?: string;

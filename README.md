@@ -28,7 +28,7 @@ Para garantizar una densidad uniforme:
 Los centroides de las hojas del Árbol K-D se utilizan como semillas para generar un diagrama de Voronoi. Esto convierte las divisiones rectangulares del árbol en polígonos orgánicos que se adaptan mejor a la morfología urbana de Medellín.
 
 ### 4. Enriquecimiento Semántico (Gemini AI)
-Se integra la API de Google Gemini (modelo `gemini-1.5-flash`) para generar análisis cualitativos en tiempo real. Al seleccionar un cuadrante, el sistema envía los metadatos numéricos y el contexto geográfico (barrio, límites cardinales) al LLM, el cual devuelve un perfil narrativo sobre las dinámicas del sector.
+Se integra la API de Google Gemini (modelo `gemini-3-flash-preview`) para generar análisis cualitativos en tiempo real. Al seleccionar un cuadrante, el sistema envía los metadatos numéricos y el contexto geográfico (barrio, límites cardinales) al LLM, el cual devuelve un perfil narrativo sobre las dinámicas del sector.
 
 ## Stack Tecnológico
 
@@ -36,6 +36,30 @@ Se integra la API de Google Gemini (modelo `gemini-1.5-flash`) para generar aná
 - **Geospatial:** Leaflet, React-Leaflet, D3-Delaunay.
 - **Data Viz:** Recharts.
 - **AI/LLM:** Google GenAI SDK (`@google/genai`).
+
+## Referencias y Fuentes (APA)
+
+A continuación se listan las fuentes primarias utilizadas para la construcción de los modelos de datos, con sus respectivos enlaces de acceso público:
+
+### Fuentes de Datos Demográficos y Electorales
+*   **Alcaldía de Medellín.** (2023). *Encuesta de Calidad de Vida 2023: Indicadores por Comuna y Corregimiento*. Departamento Administrativo de Planeación.  
+    [Acceder al Reporte](https://www.medellin.gov.co/es/departamento-administrativo-de-planeacion/encuesta-calidad-de-vida/)
+*   **Departamento Administrativo Nacional de Estadística (DANE).** (2018). *Censo Nacional de Población y Vivienda 2018: Visualizador de Información Censal y Microdatos*. Bogotá: DANE.  
+    [Acceder al Geovisor CNPV](https://sitios.dane.gov.co/cnpv/) | [Microdatos](https://microdatos.dane.gov.co/index.php/catalog/643)
+*   **Medellín Cómo Vamos.** (2023). *Informe de Calidad de Vida de Medellín, 2020-2023*.  
+    [Biblioteca de Publicaciones](https://www.medellincomovamos.org/calidad-de-vida)
+*   **Registraduría Nacional del Estado Civil.** (2022). *Resultados Electorales Congreso de la República 2022*. (Senado y Cámara).  
+    [Resultados Oficiales 2022](https://resultados.registraduria.gov.co/congreso/2022)
+*   **Registraduría Nacional del Estado Civil.** (2023). *Elecciones de Autoridades Territoriales 2023: Consolidados Alcaldía, Gobernación, Concejo y Asamblea*.  
+    [Resultados Oficiales 2023](https://resultados.registraduria.gov.co/autoridades/2023)
+
+### Literatura Algorítmica y Técnica
+*   **De Berg, M., Cheong, O., van Kreveld, M., & Overmars, M.** (2008). *Computational Geometry: Algorithms and Applications* (3rd ed.). Springer Berlin, Heidelberg.  
+    [DOI: 10.1007/978-3-540-77974-2](https://doi.org/10.1007/978-3-540-77974-2)
+*   **Google DeepMind.** (2024). *Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context*. arXiv preprint.  
+    [arXiv:2403.05530](https://arxiv.org/abs/2403.05530)
+*   **Lloyd, S.** (1982). Least squares quantization in PCM. *IEEE Transactions on Information Theory*, 28(2), 129–137. (Algoritmo base para la optimización de Voronoi).  
+    [IEEE Xplore](https://ieeexplore.ieee.org/document/1056489)
 
 ## Instalación y Ejecución
 
