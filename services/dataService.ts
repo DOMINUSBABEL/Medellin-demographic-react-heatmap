@@ -5,10 +5,16 @@ import { Delaunay } from 'd3-delaunay';
 
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-const randomEnum = <T>(anEnum: T): T[keyof T] => {
-  const enumValues = Object.values(anEnum as object) as unknown as T[keyof T][];
-  const randomIndex = Math.floor(Math.random() * enumValues.length);
-  return enumValues[randomIndex];
+const enumCache = new WeakMap<object, any[]>();
+
+export const randomEnum = <T>(anEnum: T): T[keyof T] => {
+  let enumValues = enumCache.get(anEnum as object);
+  if (!enumValues) {
+    enumValues = Object.values(anEnum as object);
+    enumCache.set(anEnum as object, enumValues);
+  }
+  const randomIndex = Math.floor(Math.random() * enumValues!.length);
+  return enumValues![randomIndex] as T[keyof T];
 };
 
 const getMode = <T>(array: T[]): T => {
