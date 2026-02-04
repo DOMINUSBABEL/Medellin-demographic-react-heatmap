@@ -443,6 +443,10 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const votingAssemblyCounts: Record<string, number> = {};
   const votingCongressCounts: Record<string, number> = {};
 
+  const incrementCount = (record: Record<string, number>, key: string) => {
+    record[key] = (record[key] || 0) + 1;
+  };
+
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
     totalPopulation += p.population;
@@ -451,12 +455,12 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     sumStrata += p.strata;
     sumEmployment += p.employmentRate;
 
-    votingPreferenceCounts[p.votingPreference] = (votingPreferenceCounts[p.votingPreference] || 0) + 1;
-    politicalSpectrumCounts[p.politicalSpectrum] = (politicalSpectrumCounts[p.politicalSpectrum] || 0) + 1;
-    votingGovernorCounts[p.votingGovernor] = (votingGovernorCounts[p.votingGovernor] || 0) + 1;
-    votingCouncilCounts[p.votingCouncil] = (votingCouncilCounts[p.votingCouncil] || 0) + 1;
-    votingAssemblyCounts[p.votingAssembly] = (votingAssemblyCounts[p.votingAssembly] || 0) + 1;
-    votingCongressCounts[p.votingCongress] = (votingCongressCounts[p.votingCongress] || 0) + 1;
+    incrementCount(votingPreferenceCounts, p.votingPreference);
+    incrementCount(politicalSpectrumCounts, p.politicalSpectrum);
+    incrementCount(votingGovernorCounts, p.votingGovernor);
+    incrementCount(votingCouncilCounts, p.votingCouncil);
+    incrementCount(votingAssemblyCounts, p.votingAssembly);
+    incrementCount(votingCongressCounts, p.votingCongress);
   }
 
   const realBarrio = findClosestBarrio(node.centroidLat, node.centroidLng);
