@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { ZoneData, MapLayer, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum, GovernorVote, PublicCorporationParty } from '../types';
 import L from 'leaflet';
@@ -93,6 +93,118 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
   }
 };
 
+interface ZonePolygonProps {
+    zone: ZoneData;
+    activeLayer: MapLayer;
+    isSelected: boolean;
+    onZoneSelect: (zone: ZoneData | null) => void;
+}
+
+const ZonePolygon = memo(({ zone, activeLayer, isSelected, onZoneSelect }: ZonePolygonProps) => {
+    const fillColor = getColor(zone, activeLayer);
+
+    // Define styles based on state
+    const baseWeight = isSelected ? 3 : 1;
+    const baseColor = isSelected ? '#ffffff' : '#333333'; // White if selected, Dark Grey if not
+    const baseOpacity = isSelected ? 0.85 : 0.6;
+
+    if (!zone.polygon || zone.polygon.length === 0) {
+        return null;
+    }
+
+    return (
+        <Polygon
+            positions={zone.polygon}
+            pathOptions={{
+            fillColor: fillColor,
+            color: baseColor,
+            weight: baseWeight,
+            fillOpacity: baseOpacity,
+            }}
+            eventHandlers={{
+            click: (e) => {
+                L.DomEvent.stopPropagation(e);
+                onZoneSelect(zone);
+            },
+            mouseover: (e) => {
+                const layer = e.target;
+                layer.setStyle({
+                    weight: 3,
+                    color: '#d1d5db', // Light gray hover
+                    fillOpacity: 0.9
+                });
+                layer.bringToFront();
+            },
+            mouseout: (e) => {
+                const layer = e.target;
+                // Reset to base styles
+                layer.setStyle({
+                    weight: isSelected ? 3 : 1,
+                    color: isSelected ? '#ffffff' : '#333333',
+                    fillOpacity: isSelected ? 0.85 : 0.6
+                });
+            }
+            }}
+        >
+            {/* Persistent Tooltip on Hover */}
+            <Tooltip sticky direction="top" opacity={1} className="custom-map-tooltip">
+            <div className="font-sans text-xs leading-tight text-slate-700">
+                <span className="font-bold block text-sm text-slate-900">{zone.specificSector}</span>
+                <span className="text-slate-500 uppercase tracking-wide text-[10px]">{zone.locationName}</span>
+                <div className="mt-1 pt-1 border-t border-gray-200 flex gap-2">
+                    <span className="font-semibold text-blue-600">Estrato {zone.strata}</span>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-slate-600">{zone.population} Hab.</span>
+                </div>
+            </div>
+            </Tooltip>
+
+            <Popup className="font-sans" closeButton={false} minWidth={280} maxWidth={320}>
+            <div className="relative text-slate-700">
+                <div className="flex justify-between items-start mb-2">
+                    <div>
+                        {/* Detailed Naming */}
+                        <strong className="block text-slate-900 text-sm font-bold leading-tight">
+                        {zone.specificSector}
+                        </strong>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wide">
+                        {zone.locationName}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => onZoneSelect(null)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors -mt-1 -mr-1"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+
+                <div className="border-t border-gray-200 my-2"></div>
+
+                {/* Precision Address */}
+                <div className="bg-slate-50 p-2 rounded mb-2 border border-slate-100">
+                    <div className="text-[10px] text-blue-700 font-bold mb-0.5">
+                        {zone.address}
+                    </div>
+                    <div className="text-[9px] text-slate-500 font-mono leading-tight">
+                        {zone.cardinalLimits}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
+                    <span>Población (Eq):</span> <span className="font-medium text-gray-900">{zone.population} hab</span>
+                    <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
+                    <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
+                    <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
+                        ${(zone.householdIncome/1000000).toFixed(1)}M
+                    </span>
+                </div>
+            </div>
+            </Popup>
+        </Polygon>
+    );
+});
+
 const MapEffect: React.FC<{ selectedZone: ZoneData | null }> = ({ selectedZone }) => {
   const map = useMap();
   useEffect(() => {
@@ -115,6 +227,18 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
   const [isFullScreen, setIsFullScreen] = useState(false);
   const center: [number, number] = [6.2442, -75.5812];
 
+  // Stable callback pattern to ensure React.memo works in ZonePolygon
+  const onZoneSelectRef = useRef(onZoneSelect);
+  useEffect(() => {
+    onZoneSelectRef.current = onZoneSelect;
+  }, [onZoneSelect]);
+
+  const handleZoneSelect = useCallback((zone: ZoneData | null) => {
+    if (onZoneSelectRef.current) {
+        onZoneSelectRef.current(zone);
+    }
+  }, []);
+
   return (
     <div className={`${isFullScreen ? 'fixed inset-0 z-[5000]' : 'relative h-full w-full z-0'}`}>
       
@@ -134,116 +258,20 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
         className="h-full w-full bg-slate-900" 
       >
         <MapEffect selectedZone={selectedZone} />
-        <MapEvents onDeselect={() => onZoneSelect(null)} />
+        <MapEvents onDeselect={() => handleZoneSelect(null)} />
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
-        {data.map((zone) => {
-            const isSelected = selectedZone?.id === zone.id;
-            const fillColor = getColor(zone, activeLayer);
-            
-            // Define styles based on state
-            const baseWeight = isSelected ? 3 : 1;
-            const baseColor = isSelected ? '#ffffff' : '#333333'; // White if selected, Dark Grey if not
-            const baseOpacity = isSelected ? 0.85 : 0.6;
-
-            if (zone.polygon && zone.polygon.length > 0) {
-               return (
-                  <Polygon
-                     key={zone.id}
-                     positions={zone.polygon}
-                     pathOptions={{
-                        fillColor: fillColor,
-                        color: baseColor,
-                        weight: baseWeight,
-                        fillOpacity: baseOpacity,
-                     }}
-                     eventHandlers={{
-                        click: (e) => {
-                           L.DomEvent.stopPropagation(e);
-                           onZoneSelect(zone);
-                        },
-                        mouseover: (e) => {
-                           const layer = e.target;
-                           layer.setStyle({
-                               weight: 3,
-                               color: '#d1d5db', // Light gray hover
-                               fillOpacity: 0.9
-                           });
-                           layer.bringToFront();
-                        },
-                        mouseout: (e) => {
-                           const layer = e.target;
-                           // Reset to base styles
-                           layer.setStyle({
-                               weight: isSelected ? 3 : 1,
-                               color: isSelected ? '#ffffff' : '#333333',
-                               fillOpacity: isSelected ? 0.85 : 0.6
-                           });
-                        }
-                     }}
-                  >
-                     {/* Persistent Tooltip on Hover */}
-                     <Tooltip sticky direction="top" opacity={1} className="custom-map-tooltip">
-                        <div className="font-sans text-xs leading-tight text-slate-700">
-                            <span className="font-bold block text-sm text-slate-900">{zone.specificSector}</span>
-                            <span className="text-slate-500 uppercase tracking-wide text-[10px]">{zone.locationName}</span>
-                            <div className="mt-1 pt-1 border-t border-gray-200 flex gap-2">
-                                <span className="font-semibold text-blue-600">Estrato {zone.strata}</span>
-                                <span className="text-gray-400">|</span>
-                                <span className="text-slate-600">{zone.population} Hab.</span>
-                            </div>
-                        </div>
-                     </Tooltip>
-
-                     <Popup className="font-sans" closeButton={false} minWidth={280} maxWidth={320}>
-                        <div className="relative text-slate-700">
-                           <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  {/* Detailed Naming */}
-                                  <strong className="block text-slate-900 text-sm font-bold leading-tight">
-                                    {zone.specificSector}
-                                  </strong>
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wide">
-                                    {zone.locationName}
-                                  </span>
-                                </div>
-                                <button 
-                                    onClick={() => onZoneSelect(null)}
-                                    className="text-gray-400 hover:text-gray-700 transition-colors -mt-1 -mr-1"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-                            
-                            <div className="border-t border-gray-200 my-2"></div>
-                            
-                            {/* Precision Address */}
-                            <div className="bg-slate-50 p-2 rounded mb-2 border border-slate-100">
-                                <div className="text-[10px] text-blue-700 font-bold mb-0.5">
-                                  {zone.address}
-                                </div>
-                                <div className="text-[9px] text-slate-500 font-mono leading-tight">
-                                  {zone.cardinalLimits}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
-                                <span>Población (Eq):</span> <span className="font-medium text-gray-900">{zone.population} hab</span>
-                                <span>Edad Prom.:</span> <span className="font-medium text-gray-900">{zone.avgAge}</span>
-                                <span>Estrato Dom.:</span> <span className="font-medium text-gray-900">{zone.strata}</span>
-                                <span>Ingreso Prom.:</span> <span className="font-medium text-green-700">
-                                    ${(zone.householdIncome/1000000).toFixed(1)}M
-                                </span>
-                            </div>
-                        </div>
-                     </Popup>
-                  </Polygon>
-               )
-            }
-            return null;
-        })}
+        {data.map((zone) => (
+            <ZonePolygon
+                key={zone.id}
+                zone={zone}
+                activeLayer={activeLayer}
+                isSelected={selectedZone?.id === zone.id}
+                onZoneSelect={handleZoneSelect}
+            />
+        ))}
       </MapContainer>
       
       {/* Legend Overlay */}
