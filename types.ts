@@ -1,3 +1,5 @@
+export type City = 'Medellin' | 'Bogota';
+
 export enum SocialInterest {
   Tech = 'Tecnología',
   Sports = 'Deportes',
@@ -21,7 +23,12 @@ export enum PoliticalParty {
   Independientes = 'Independientes (Upegui)',
   Pacto = 'Pacto Histórico',
   Centro = 'Compromiso / Centro',
-  VotoEnBlanco = 'Voto en Blanco'
+  VotoEnBlanco = 'Voto en Blanco',
+  // Bogota additions
+  Galan = 'C.F. Galán (Nuevo Lib)',
+  Oviedo = 'J.D. Oviedo',
+  Bolivar = 'G. Bolívar (Pacto)',
+  Molano = 'Diego Molano'
 }
 
 export enum GovernorVote {
@@ -29,7 +36,10 @@ export enum GovernorVote {
   LuisPerez = 'Luis Pérez',
   Suarez = 'L.F. Suárez',
   Bedoya = 'Julián Bedoya',
-  VotoEnBlanco = 'Voto en Blanco'
+  VotoEnBlanco = 'Voto en Blanco',
+  // Cundinamarca additions
+  Rey = 'Jorge Emilio Rey',
+  Nancy = 'Nancy P. Gutiérrez'
 }
 
 export enum PublicCorporationParty {

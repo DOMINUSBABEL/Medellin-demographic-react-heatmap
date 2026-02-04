@@ -1,21 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import MapVisualizer from './components/MapVisualizer';
 import Dashboard from './components/Dashboard';
 import ArxivPaper from './components/ArxivPaper';
-import { generateMedellinData, processKDTree } from './services/dataService';
-import { MapLayer, ZoneData } from './types';
+import { generateData, processKDTree } from './services/dataService';
+import { MapLayer, ZoneData, City } from './types';
 
 const App: React.FC = () => {
+  const [city, setCity] = useState<City>('Medellin');
+
+  // Reset selected zone and filters when city changes
+  useEffect(() => {
+    setSelectedZone(null);
+    setComunaFilter('all');
+  }, [city]);
+
   // 1. Generate Raw Points (Simulated Individuals)
   // Target: ~2500 people per cell.
   // Calculation: Depth 10 = 1024 cells.
   // 1024 cells * 2550 avg pop = ~2,611,200 Total Simulated Population.
   // Using 26,000 points with weight ~100 gives exactly this scale.
-  const rawPoints = useMemo(() => generateMedellinData(26000), []);
+  const rawPoints = useMemo(() => generateData(city, 26000), [city]);
   
   // 2. Process into K-D Tree Grid (High Resolution)
   // Depth 10 provides 1024 distinct micro-zones.
-  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 10), [rawPoints]);
+  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 10, city), [rawPoints, city]);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
@@ -61,6 +69,9 @@ const App: React.FC = () => {
     setSelectedZone(zone);
   };
 
+  // Dynamic center based on city
+  const center: [number, number] = city === 'Bogota' ? [4.65, -74.09] : [6.2442, -75.5812];
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100 font-sans">
       {/* Sidebar Controls */}
@@ -71,6 +82,9 @@ const App: React.FC = () => {
           selectedZone={selectedZone}
           onOpenPaper={() => setIsPaperOpen(true)}
           
+          city={city}
+          setCity={setCity}
+
           // Filter Props
           strataFilter={strataFilter}
           setStrataFilter={setStrataFilter}
@@ -85,10 +99,12 @@ const App: React.FC = () => {
       {/* Main Map Area */}
       <div className="flex-1 h-full relative z-10">
         <MapVisualizer 
+          key={city} // Force remount on city change to reset view properly
           data={filteredData}
           activeLayer={activeLayer}
           onZoneSelect={handleZoneSelect}
           selectedZone={selectedZone}
+          center={center}
         />
       </div>
 

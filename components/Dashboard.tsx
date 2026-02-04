@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MapLayer, ZoneData, PoliticalSpectrum } from '../types';
+import { MapLayer, ZoneData, PoliticalSpectrum, City } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend 
 } from 'recharts';
@@ -11,6 +11,9 @@ interface DashboardProps {
   setActiveLayer: (layer: MapLayer) => void;
   selectedZone: ZoneData | null;
   onOpenPaper: () => void;
+
+  city: City;
+  setCity: (city: City) => void;
   
   // Filter Props
   strataFilter: string;
@@ -24,6 +27,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   activeLayer, setActiveLayer, selectedZone, onOpenPaper,
+  city, setCity,
   strataFilter, setStrataFilter, comunaFilter, setComunaFilter, spectrumFilter, setSpectrumFilter, comunaOptions
 }) => {
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
@@ -136,9 +140,28 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="flex flex-col h-full bg-slate-50 border-r border-slate-200 shadow-xl z-20 w-full max-w-md overflow-y-auto">
       {/* Header */}
       <div className="p-6 bg-slate-900 text-white shadow-md">
-        <h1 className="text-2xl font-bold tracking-tight">GeoMedellín</h1>
+        <h1 className="text-2xl font-bold tracking-tight">GeoColombia</h1>
         <p className="text-slate-400 text-sm mt-1">Data Source: DANE & OSINT Reports</p>
       </div>
+
+       {/* City Selector */}
+       <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+           <label className="block text-xs font-bold uppercase text-slate-500 mb-2 tracking-wider">Ciudad / Región</label>
+           <div className="flex bg-white rounded-lg p-1 border border-slate-300 shadow-sm">
+               <button
+                  onClick={() => setCity('Medellin')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${city === 'Medellin' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-50'}`}
+               >
+                   Medellín
+               </button>
+               <button
+                  onClick={() => setCity('Bogota')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${city === 'Bogota' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-50'}`}
+               >
+                   Bogotá
+               </button>
+           </div>
+       </div>
 
       {/* FILTER SECTION */}
       <div className="p-6 border-b border-slate-200 bg-white">
