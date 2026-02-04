@@ -272,7 +272,7 @@ interface BarrioDefinition {
     landUse: 'Residencial' | 'Comercial' | 'Mixto' | 'Industrial' | 'Rural' | 'Institucional';
 }
 
-const DETAILED_BARRIOS: BarrioDefinition[] = [
+export const DETAILED_BARRIOS: BarrioDefinition[] = [
     // --- COMUNA 14 - EL POBLADO ---
     { name: "Provenza", comuna: "El Poblado", lat: 6.208, lng: -75.566, strata: 6, landUse: "Mixto" },
     { name: "Manila", comuna: "El Poblado", lat: 6.215, lng: -75.571, strata: 5, landUse: "Mixto" },
@@ -410,16 +410,88 @@ const DETAILED_BARRIOS: BarrioDefinition[] = [
     { name: "Santa Elena (Entrada)", comuna: "Santa Elena", lat: 6.240, lng: -75.520, strata: 3, landUse: "Rural" }
 ];
 
+// Optimized lookup using Y-axis sorting and pruning
+const BARRIOS_BY_LAT = [...DETAILED_BARRIOS].sort((a, b) => a.lat - b.lat);
+
 const findClosestBarrio = (lat: number, lng: number): BarrioDefinition => {
-    let closest = DETAILED_BARRIOS[0];
-    let minDist = Infinity;
-    for (const b of DETAILED_BARRIOS) {
-        const d = Math.pow(b.lat - lat, 2) + Math.pow(b.lng - lng, 2);
-        if (d < minDist) {
-            minDist = d;
-            closest = b;
+    // Binary search to find the insertion point for lat
+    let low = 0, high = BARRIOS_BY_LAT.length - 1;
+    let mid = 0;
+    while (low <= high) {
+        mid = (low + high) >>> 1;
+        if (BARRIOS_BY_LAT[mid].lat < lat) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
         }
     }
+
+    // Start searching from the closest index found (low is insertion point)
+    // We check indices outwards: low, low-1, low+1...
+    // But conceptually we expand [low-1] (down) and [low] (up).
+
+    let closest = BARRIOS_BY_LAT[0];
+    let minDistSq = Infinity;
+
+    // To ensure we find a valid closest first to bound the search,
+    // we can check the immediate neighbors of 'low'.
+
+    // Pointers for expansion
+    let i = low - 1; // Downwards
+    let j = low;     // Upwards
+
+    // Flag to check if we can stop in a direction
+    let stopDown = false;
+    let stopUp = false;
+
+    while (!stopDown || !stopUp) {
+        // Check Upwards (j)
+        if (!stopUp) {
+            if (j >= BARRIOS_BY_LAT.length) {
+                stopUp = true;
+            } else {
+                const b = BARRIOS_BY_LAT[j];
+                const dy = b.lat - lat;
+                const dy2 = dy * dy;
+
+                if (dy2 >= minDistSq && minDistSq !== Infinity) {
+                    stopUp = true;
+                } else {
+                    const dx = b.lng - lng;
+                    const d = dy2 + dx * dx;
+                    if (d < minDistSq) {
+                        minDistSq = d;
+                        closest = b;
+                    }
+                    j++;
+                }
+            }
+        }
+
+        // Check Downwards (i)
+        if (!stopDown) {
+            if (i < 0) {
+                stopDown = true;
+            } else {
+                const b = BARRIOS_BY_LAT[i];
+                const dy = lat - b.lat;
+                const dy2 = dy * dy;
+
+                if (dy2 >= minDistSq && minDistSq !== Infinity) {
+                    stopDown = true;
+                } else {
+                    const dx = b.lng - lng;
+                    const d = dy2 + dx * dx;
+                    if (d < minDistSq) {
+                        minDistSq = d;
+                        closest = b;
+                    }
+                    i--;
+                }
+            }
+        }
+    }
+
     return closest;
 };
 
