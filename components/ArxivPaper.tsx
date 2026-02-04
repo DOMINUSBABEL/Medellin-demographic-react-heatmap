@@ -79,7 +79,7 @@ const ArxivPaper: React.FC<ArxivPaperProps> = ({ onClose }) => {
                         We generated a synthetic population of $N=26,000$ representative data points, projected to model a total population of approximately 2.6 million inhabitants. This generation process was seeded using a database of over 100 specific neighborhood centroids (`DETAILED_BARRIOS`), ranging from <em>Santo Domingo Savio</em> in the north to <em>San Antonio de Prado</em> in the south.
                     </p>
                     <p className="mb-3">
-                        Each seed point applies a Gaussian distribution mechanism to disperse individuals spatially (${\sigma} \approx 0.0030^{\circ}$), simulating realistic urban sprawl while adhering to the specific land-use constraints (Residential, Industrial, Mixed) of the seed barrio.
+                        Each seed point applies a Gaussian distribution mechanism to disperse individuals spatially (sigma ~ 0.0030 deg), simulating realistic urban sprawl while adhering to the specific land-use constraints (Residential, Industrial, Mixed) of the seed barrio.
                     </p>
                 </section>
 
