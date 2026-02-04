@@ -11,40 +11,6 @@ const randomEnum = <T>(anEnum: T): T[keyof T] => {
   return enumValues[randomIndex];
 };
 
-const getMode = <T>(array: T[]): T => {
-    if (array.length === 0) return null as unknown as T;
-    const modeMap: Map<T, number> = new Map();
-    let maxEl = array[0], maxCount = 1;
-    for (const item of array) {
-        let el = modeMap.get(item);
-        if (el === undefined) el = 0;
-        el++;
-        modeMap.set(item, el);
-        if (el > maxCount) {
-            maxEl = item;
-            maxCount = el;
-        }
-    }
-    return maxEl;
-};
-
-// Calculate top 3 vote getters
-const getVoteBreakdown = (votes: string[]): { party: string; percent: number }[] => {
-    if (votes.length === 0) return [];
-    const counts: Record<string, number> = {};
-    votes.forEach(v => {
-        counts[v] = (counts[v] || 0) + 1;
-    });
-    
-    const total = votes.length;
-    return Object.entries(counts)
-        .map(([party, count]) => ({
-            party,
-            percent: parseFloat(((count / total) * 100).toFixed(1))
-        }))
-        .sort((a, b) => b.percent - a.percent)
-        .slice(0, 3);
-};
 
 const randomGaussian = () => {
   let u = 0, v = 0;
@@ -438,15 +404,60 @@ const generatePolygonLimits = (polygon: [number, number][]): string => {
     return `${formatCoord(maxLat)}N ${formatCoord(minLng)}W`;
 };
 
+const getModeFromRecord = (counts: Record<string, number>): string => {
+    let maxEl = '', maxCount = 0;
+    for (const key in counts) {
+        if (counts[key] > maxCount) {
+            maxEl = key;
+            maxCount = counts[key];
+        }
+    }
+    return maxEl;
+};
+
+const getVoteBreakdownFromRecord = (counts: Record<string, number>, total: number): { party: string; percent: number }[] => {
+    if (total === 0) return [];
+    return Object.entries(counts)
+        .map(([party, count]) => ({
+            party,
+            percent: parseFloat(((count / total) * 100).toFixed(1))
+        }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 3);
+};
+
 const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, centroidLng: number}, polygon: [number, number][], index: number, normalizedDensity: number): ZoneData => {
   const points = node.points;
   const safeCount = points.length || 1; 
   
-  const totalPopulation = points.reduce((sum, p) => sum + p.population, 0);
-  const sumIncome = points.reduce((sum, p) => sum + p.householdIncome, 0);
-  const sumAge = points.reduce((sum, p) => sum + p.avgAge, 0);
-  const sumStrata = points.reduce((sum, p) => sum + p.strata, 0);
-  const sumEmployment = points.reduce((sum, p) => sum + p.employmentRate, 0);
+  let totalPopulation = 0;
+  let sumIncome = 0;
+  let sumAge = 0;
+  let sumStrata = 0;
+  let sumEmployment = 0;
+
+  const votingPreferenceCounts: Record<string, number> = {};
+  const politicalSpectrumCounts: Record<string, number> = {};
+  const votingGovernorCounts: Record<string, number> = {};
+  const votingCouncilCounts: Record<string, number> = {};
+  const votingAssemblyCounts: Record<string, number> = {};
+  const votingCongressCounts: Record<string, number> = {};
+
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    totalPopulation += p.population;
+    sumIncome += p.householdIncome;
+    sumAge += p.avgAge;
+    sumStrata += p.strata;
+    sumEmployment += p.employmentRate;
+
+    votingPreferenceCounts[p.votingPreference] = (votingPreferenceCounts[p.votingPreference] || 0) + 1;
+    politicalSpectrumCounts[p.politicalSpectrum] = (politicalSpectrumCounts[p.politicalSpectrum] || 0) + 1;
+    votingGovernorCounts[p.votingGovernor] = (votingGovernorCounts[p.votingGovernor] || 0) + 1;
+    votingCouncilCounts[p.votingCouncil] = (votingCouncilCounts[p.votingCouncil] || 0) + 1;
+    votingAssemblyCounts[p.votingAssembly] = (votingAssemblyCounts[p.votingAssembly] || 0) + 1;
+    votingCongressCounts[p.votingCongress] = (votingCongressCounts[p.votingCongress] || 0) + 1;
+  }
 
   const realBarrio = findClosestBarrio(node.centroidLat, node.centroidLng);
 
@@ -456,19 +467,19 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const dominantOccupation = points[0]?.mainOccupation || "Empleado";
   
   // Calculate categorical modes for politics
-  const dominantParty = getMode(points.map(p => p.votingPreference)) || PoliticalParty.VotoEnBlanco;
-  const dominantSpectrum = getMode(points.map(p => p.politicalSpectrum)) || PoliticalSpectrum.Centro;
-  const dominantGovernor = getMode(points.map(p => p.votingGovernor)) || GovernorVote.VotoEnBlanco;
-  const dominantCouncil = getMode(points.map(p => p.votingCouncil)) || PublicCorporationParty.ASI;
-  const dominantAssembly = getMode(points.map(p => p.votingAssembly)) || PublicCorporationParty.ASI;
-  const dominantCongress = getMode(points.map(p => p.votingCongress)) || PublicCorporationParty.ASI;
+  const dominantParty = (getModeFromRecord(votingPreferenceCounts) as PoliticalParty) || PoliticalParty.VotoEnBlanco;
+  const dominantSpectrum = (getModeFromRecord(politicalSpectrumCounts) as PoliticalSpectrum) || PoliticalSpectrum.Centro;
+  const dominantGovernor = (getModeFromRecord(votingGovernorCounts) as GovernorVote) || GovernorVote.VotoEnBlanco;
+  const dominantCouncil = (getModeFromRecord(votingCouncilCounts) as PublicCorporationParty) || PublicCorporationParty.ASI;
+  const dominantAssembly = (getModeFromRecord(votingAssemblyCounts) as PublicCorporationParty) || PublicCorporationParty.ASI;
+  const dominantCongress = (getModeFromRecord(votingCongressCounts) as PublicCorporationParty) || PublicCorporationParty.ASI;
 
   // New: Calculate vote breakdown for ALL elections
-  const mayorBreakdown = getVoteBreakdown(points.map(p => p.votingPreference));
-  const governorBreakdown = getVoteBreakdown(points.map(p => p.votingGovernor));
-  const councilBreakdown = getVoteBreakdown(points.map(p => p.votingCouncil));
-  const assemblyBreakdown = getVoteBreakdown(points.map(p => p.votingAssembly));
-  const congressBreakdown = getVoteBreakdown(points.map(p => p.votingCongress));
+  const mayorBreakdown = getVoteBreakdownFromRecord(votingPreferenceCounts, points.length);
+  const governorBreakdown = getVoteBreakdownFromRecord(votingGovernorCounts, points.length);
+  const councilBreakdown = getVoteBreakdownFromRecord(votingCouncilCounts, points.length);
+  const assemblyBreakdown = getVoteBreakdownFromRecord(votingAssemblyCounts, points.length);
+  const congressBreakdown = getVoteBreakdownFromRecord(votingCongressCounts, points.length);
 
   return {
     id: `z-${index}`,
