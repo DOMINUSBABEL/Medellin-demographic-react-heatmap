@@ -1,4 +1,4 @@
-import { ZoneData, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum, GovernorVote, PublicCorporationParty } from '../types';
+import { ZoneData, EducationLevel, SocialInterest, PoliticalParty, PoliticalSpectrum, GovernorVote, PublicCorporationParty, City } from '../types';
 import { Delaunay } from 'd3-delaunay';
 
 // --- HELPER FUNCTIONS ---
@@ -37,12 +37,12 @@ const getEstimatedIncome = (strata: number): number => {
   return Math.floor(base + (Math.random() - 0.5) * 2 * variance);
 };
 
-// --- POLITICS GENERATOR (CURATED E-26 DATA) ---
+// --- POLITICS GENERATOR (MEDELLIN) ---
 
-const getPoliticalProfile = (strata: number, age: number, comunaName: string) => {
-    const r = Math.random(); // General Randomizer
-    const r2 = Math.random(); // Secondary Randomizer (for split ticket voting)
-    const r3 = Math.random(); // Tertiary
+const getPoliticalProfileMedellin = (strata: number, age: number, comunaName: string) => {
+    const r = Math.random();
+    const r2 = Math.random();
+    const r3 = Math.random();
 
     let mayor = PoliticalParty.Creemos;
     let governor = GovernorVote.Rendon;
@@ -50,8 +50,6 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
     let assembly = PublicCorporationParty.CentroDemocratico;
     let congress = PublicCorporationParty.CentroDemocratico;
     let spectrum = PoliticalSpectrum.Derecha;
-
-    // --- LOGIC BASED ON MEDELLIN ELECTORAL GEOGRAPHY ---
 
     // 1. ZONA SUR-OCCIDENTE Y ELITES (Poblado, Laureles, Belén)
     if (['El Poblado', 'Laureles', 'Belén'].some(c => comunaName.includes(c))) {
@@ -62,7 +60,7 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         if (r < 0.85) mayor = PoliticalParty.Creemos;
         else if (r < 0.92) mayor = PoliticalParty.Centro; 
         else if (r < 0.96) mayor = PoliticalParty.VotoEnBlanco;
-        else mayor = PoliticalParty.Independientes; // Very low here
+        else mayor = PoliticalParty.Independientes;
 
         // Governor 2023 
         if (r < 0.75) governor = GovernorVote.Rendon;
@@ -73,29 +71,24 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         if (r2 < 0.70) congress = PublicCorporationParty.CentroDemocratico;
         else if (r2 < 0.85) congress = PublicCorporationParty.Creemos; 
         else if (r2 < 0.95) congress = PublicCorporationParty.AlianzaVerde;
-        else congress = PublicCorporationParty.PactoHistorico; // Very low
+        else congress = PublicCorporationParty.PactoHistorico;
         
         council = r < 0.6 ? PublicCorporationParty.Creemos : PublicCorporationParty.CentroDemocratico;
         assembly = PublicCorporationParty.CentroDemocratico;
     }
-
     // 2. ZONA NOR-ORIENTAL (Popular, Santa Cruz, Manrique, Aranjuez)
     else if (['Popular', 'Santa Cruz', 'Manrique', 'Aranjuez'].some(c => comunaName.includes(c))) {
-        
         spectrum = r > 0.5 ? PoliticalSpectrum.CentroDerecha : PoliticalSpectrum.Izquierda;
 
-        // Mayor 2023
         if (r < 0.60) mayor = PoliticalParty.Creemos;
-        else if (r < 0.85) mayor = PoliticalParty.Independientes; // Upegui strength here
+        else if (r < 0.85) mayor = PoliticalParty.Independientes;
         else mayor = PoliticalParty.Pacto;
 
-        // Governor 2023
         if (r < 0.50) governor = GovernorVote.LuisPerez;
-        else if (r < 0.75) governor = GovernorVote.Bedoya; // Machinery
+        else if (r < 0.75) governor = GovernorVote.Bedoya;
         else if (r < 0.90) governor = GovernorVote.Rendon;
         else governor = GovernorVote.VotoEnBlanco;
 
-        // Congress 2022 (Petro Wave strong here)
         if (r2 < 0.45) congress = PublicCorporationParty.PactoHistorico;
         else if (r2 < 0.70) congress = PublicCorporationParty.PartidoLiberal; 
         else if (r2 < 0.85) congress = PublicCorporationParty.PartidoConservador;
@@ -104,22 +97,18 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         council = r3 > 0.5 ? PublicCorporationParty.PartidoLiberal : PublicCorporationParty.ASI;
         assembly = PublicCorporationParty.PartidoConservador;
     }
-
     // 3. ZONA NOR-OCCIDENTAL (Castilla, 12 de Octubre, Robledo)
     else if (['Castilla', 'Doce de Octubre', 'Robledo'].some(c => comunaName.includes(c))) {
         spectrum = PoliticalSpectrum.CentroIzquierda;
 
-        // Mayor 2023
         if (r < 0.65) mayor = PoliticalParty.Creemos;
         else if (r < 0.85) mayor = PoliticalParty.Independientes;
         else mayor = PoliticalParty.Pacto;
 
-        // Governor 2023
         if (r < 0.40) governor = GovernorVote.LuisPerez;
         else if (r < 0.70) governor = GovernorVote.Suarez;
         else governor = GovernorVote.Rendon;
 
-        // Congress 2022
         if (r2 < 0.35) congress = PublicCorporationParty.PactoHistorico;
         else if (r2 < 0.65) congress = PublicCorporationParty.AlianzaVerde; 
         else congress = PublicCorporationParty.CentroDemocratico;
@@ -127,22 +116,18 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         council = PublicCorporationParty.AlianzaVerde;
         assembly = PublicCorporationParty.PartidoLiberal;
     }
-
     // 4. CENTRO ORIENTAL (Villa Hermosa, Buenos Aires, La Candelaria)
     else if (['Villa Hermosa', 'Buenos Aires', 'La Candelaria'].some(c => comunaName.includes(c))) {
         spectrum = PoliticalSpectrum.Centro;
 
-        // Mayor 2023
         if (r < 0.70) mayor = PoliticalParty.Creemos;
         else if (r < 0.85) mayor = PoliticalParty.Centro; 
         else mayor = PoliticalParty.Independientes;
 
-        // Governor 2023
         if (r < 0.40) governor = GovernorVote.Suarez;
         else if (r < 0.70) governor = GovernorVote.Rendon;
         else governor = GovernorVote.LuisPerez;
 
-        // Congress 2022
         if (r2 < 0.30) congress = PublicCorporationParty.PactoHistorico;
         else if (r2 < 0.60) congress = PublicCorporationParty.AlianzaVerde;
         else congress = PublicCorporationParty.CentroDemocratico;
@@ -150,22 +135,18 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
         council = PublicCorporationParty.AlianzaVerde;
         assembly = PublicCorporationParty.ASI;
     }
-
     // 5. ZONA OCCIDENTAL Y CORREGIMIENTOS
     else {
         spectrum = PoliticalSpectrum.CentroDerecha;
 
-        // Mayor
         if (r < 0.65) mayor = PoliticalParty.Creemos;
         else if (r < 0.80) mayor = PoliticalParty.Independientes; 
         else mayor = PoliticalParty.Pacto;
 
-        // Governor
         if (r < 0.45) governor = GovernorVote.LuisPerez; 
         else if (r < 0.70) governor = GovernorVote.Rendon;
         else governor = GovernorVote.Bedoya;
 
-        // Congress 2022
         if (r2 < 0.35) congress = PublicCorporationParty.PactoHistorico; 
         else if (r2 < 0.65) congress = PublicCorporationParty.PartidoConservador; 
         else congress = PublicCorporationParty.CentroDemocratico;
@@ -177,6 +158,119 @@ const getPoliticalProfile = (strata: number, age: number, comunaName: string) =>
     return { mayor, spectrum, governor, council, assembly, congress };
 };
 
+// --- POLITICS GENERATOR (BOGOTA) ---
+
+const getPoliticalProfileBogota = (strata: number, age: number, comunaName: string) => {
+    const r = Math.random();
+    const r2 = Math.random();
+    const r3 = Math.random();
+
+    let mayor = PoliticalParty.Galan;
+    let governor = GovernorVote.Rey; // Jorge Emilio Rey (Cundinamarca)
+    let council = PublicCorporationParty.AlianzaVerde;
+    let assembly = PublicCorporationParty.AlianzaVerde;
+    let congress = PublicCorporationParty.PactoHistorico;
+    let spectrum = PoliticalSpectrum.CentroIzquierda;
+
+    // LOGIC BASED ON BOGOTA GEOGRAPHY
+
+    // 1. NORTH & ELITE (Usaquén, Chapinero - High Income)
+    if (['Usaquén', 'Chapinero'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.CentroDerecha;
+        if (comunaName.includes('Chapinero') && r > 0.7) spectrum = PoliticalSpectrum.Centro;
+
+        // Mayor 2023 (Galán strong, Oviedo runner up)
+        if (r < 0.60) mayor = PoliticalParty.Galan;
+        else if (r < 0.90) mayor = PoliticalParty.Oviedo;
+        else mayor = PoliticalParty.Bolivar;
+
+        // Governor 2023 (Cundinamarca influence less direct in city vote but used for sim)
+        if (r < 0.60) governor = GovernorVote.Rey;
+        else governor = GovernorVote.Nancy;
+
+        // Congress 2022
+        if (r2 < 0.40) congress = PublicCorporationParty.AlianzaVerde;
+        else if (r2 < 0.70) congress = PublicCorporationParty.CentroDemocratico;
+        else if (r2 < 0.90) congress = PublicCorporationParty.PactoHistorico;
+        else congress = PublicCorporationParty.PartidoLiberal;
+
+        council = r3 < 0.5 ? PublicCorporationParty.AlianzaVerde : PublicCorporationParty.CentroDemocratico;
+        assembly = PublicCorporationParty.CentroDemocratico;
+    }
+
+    // 2. WEST & WORKING CLASS (Engativá, Fontibón)
+    else if (['Engativá', 'Fontibón'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.Centro;
+
+        if (r < 0.55) mayor = PoliticalParty.Galan;
+        else if (r < 0.80) mayor = PoliticalParty.Bolivar;
+        else mayor = PoliticalParty.Oviedo;
+
+        if (r < 0.70) governor = GovernorVote.Rey;
+        else governor = GovernorVote.Nancy;
+
+        if (r2 < 0.50) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.80) congress = PublicCorporationParty.AlianzaVerde;
+        else congress = PublicCorporationParty.PartidoLiberal;
+
+        council = PublicCorporationParty.AlianzaVerde;
+        assembly = PublicCorporationParty.PartidoLiberal;
+    }
+
+    // 3. SOUTH (Kennedy, Bosa, Ciudad Bolívar - Strong Left)
+    else if (['Kennedy', 'Bosa', 'Ciudad Bolívar', 'Usme'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.Izquierda;
+
+        if (r < 0.40) mayor = PoliticalParty.Galan;
+        else if (r < 0.85) mayor = PoliticalParty.Bolivar;
+        else mayor = PoliticalParty.Molano; // Some right wing opposition
+
+        if (r < 0.80) governor = GovernorVote.Rey;
+        else governor = GovernorVote.Nancy;
+
+        if (r2 < 0.65) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.85) congress = PublicCorporationParty.PartidoLiberal;
+        else congress = PublicCorporationParty.AlianzaVerde;
+
+        council = PublicCorporationParty.PactoHistorico;
+        assembly = PublicCorporationParty.PactoHistorico;
+    }
+
+    // 4. CENTER (Santa Fe, Candelaria, Teusaquillo - Progressive/Intellectual)
+    else if (['Santa Fe', 'La Candelaria', 'Teusaquillo'].some(c => comunaName.includes(c))) {
+        spectrum = PoliticalSpectrum.CentroIzquierda;
+
+        if (r < 0.50) mayor = PoliticalParty.Galan;
+        else if (r < 0.80) mayor = PoliticalParty.Bolivar;
+        else mayor = PoliticalParty.Oviedo;
+
+        if (r2 < 0.50) congress = PublicCorporationParty.PactoHistorico;
+        else if (r2 < 0.80) congress = PublicCorporationParty.AlianzaVerde;
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        council = PublicCorporationParty.PactoHistorico;
+        assembly = PublicCorporationParty.AlianzaVerde;
+    }
+    else {
+         // Suba and others
+        spectrum = PoliticalSpectrum.Centro;
+        if (r < 0.60) mayor = PoliticalParty.Galan;
+        else if (r < 0.80) mayor = PoliticalParty.Oviedo;
+        else mayor = PoliticalParty.Bolivar;
+
+        if (r < 0.65) governor = GovernorVote.Rey;
+        else governor = GovernorVote.Nancy;
+
+        if (r2 < 0.40) congress = PublicCorporationParty.AlianzaVerde;
+        else if (r2 < 0.70) congress = PublicCorporationParty.PactoHistorico;
+        else congress = PublicCorporationParty.CentroDemocratico;
+
+        council = PublicCorporationParty.AlianzaVerde;
+        assembly = PublicCorporationParty.PartidoLiberal;
+    }
+
+    return { mayor, spectrum, governor, council, assembly, congress };
+};
 
 // --- NOMENCLATURE & ADDRESS SYSTEM ---
 
@@ -199,7 +293,27 @@ const estimateAddressMedellin = (lat: number, lng: number): string => {
   return `${prefix} ${Math.random() > 0.5 ? finalCalle : finalCarrera} # ${Math.random() > 0.5 ? finalCarrera : finalCalle} - ${placa}`;
 };
 
-const estimatePostalCode = (comunaName: string): string => {
+const estimateAddressBogota = (lat: number, lng: number): string => {
+    // Bogota Approx Center: Calle 26, Carrera 30 (~ 4.63, -74.08)
+    const dLat = lat - 4.63;
+    const dLng = lng - (-74.08);
+
+    const degPerCalle = 0.0009;
+    const degPerCarrera = 0.0009;
+
+    let calleNum = 26 + (dLat / degPerCalle);
+    let carreraNum = 30 - (dLng / degPerCarrera);
+
+    const isSur = calleNum < 1;
+    const finalCalle = isSur ? Math.abs(Math.round(calleNum)) + " Sur" : Math.round(calleNum);
+    const finalCarrera = Math.round(carreraNum);
+    const placa = Math.floor(Math.random() * 90) + 1;
+    const prefix = Math.random() > 0.8 ? 'Transversal' : (Math.random() > 0.5 ? 'Calle' : 'Carrera');
+
+    return `${prefix} ${Math.random() > 0.5 ? finalCalle : finalCarrera} # ${Math.random() > 0.5 ? finalCarrera : finalCalle} - ${placa}`;
+};
+
+const estimatePostalCodeMedellin = (comunaName: string): string => {
     const map: Record<string, string> = {
         'Popular': '050001', 'Santa Cruz': '050002', 'Manrique': '050003', 'Aranjuez': '050004',
         'Castilla': '050005', 'Doce de Octubre': '050006', 'Robledo': '050007', 'Villa Hermosa': '050008',
@@ -211,6 +325,21 @@ const estimatePostalCode = (comunaName: string): string => {
         if (comunaName.includes(key)) return map[key];
     }
     return '050001';
+};
+
+const estimatePostalCodeBogota = (localidadName: string): string => {
+    // Basic mapping for Bogota
+    const map: Record<string, string> = {
+        'Usaquén': '110111', 'Chapinero': '110221', 'Santa Fe': '110311', 'San Cristóbal': '110411',
+        'Usme': '110511', 'Tunjuelito': '110611', 'Bosa': '110711', 'Kennedy': '110811',
+        'Fontibón': '110911', 'Engativá': '111011', 'Suba': '111111', 'Barrios Unidos': '111211',
+        'Teusaquillo': '111311', 'Los Mártires': '111411', 'Antonio Nariño': '111511', 'Puente Aranda': '111611',
+        'La Candelaria': '111711', 'Rafael Uribe': '111811', 'Ciudad Bolívar': '111911', 'Sumapaz': '112011'
+    };
+    for (const key in map) {
+        if (localidadName.includes(key)) return map[key];
+    }
+    return '110111';
 };
 
 // --- GEOMETRY HELPERS ---
@@ -226,19 +355,18 @@ const calculatePolygonArea = (polygon: [number, number][]): number => {
     return Math.abs(area) / 2;
 };
 
-// --- EXPANDED BARRIO DATABASE (100+ POINTS) ---
-// High density anchor points for Voronoi generation
+// --- BARRIO DATABASES ---
 
 interface BarrioDefinition {
     name: string;
-    comuna: string;
+    comuna: string; // or Localidad
     lat: number;
     lng: number;
     strata: number; 
     landUse: 'Residencial' | 'Comercial' | 'Mixto' | 'Industrial' | 'Rural' | 'Institucional';
 }
 
-const DETAILED_BARRIOS: BarrioDefinition[] = [
+const MEDELLIN_BARRIOS: BarrioDefinition[] = [
     // --- COMUNA 14 - EL POBLADO ---
     { name: "Provenza", comuna: "El Poblado", lat: 6.208, lng: -75.566, strata: 6, landUse: "Mixto" },
     { name: "Manila", comuna: "El Poblado", lat: 6.215, lng: -75.571, strata: 5, landUse: "Mixto" },
@@ -376,10 +504,36 @@ const DETAILED_BARRIOS: BarrioDefinition[] = [
     { name: "Santa Elena (Entrada)", comuna: "Santa Elena", lat: 6.240, lng: -75.520, strata: 3, landUse: "Rural" }
 ];
 
-const findClosestBarrio = (lat: number, lng: number): BarrioDefinition => {
-    let closest = DETAILED_BARRIOS[0];
+const BOGOTA_BARRIOS: BarrioDefinition[] = [
+    { name: "Chapinero Alto", comuna: "Chapinero", lat: 4.646, lng: -74.055, strata: 5, landUse: "Mixto" },
+    { name: "Chicó Norte", comuna: "Chapinero", lat: 4.680, lng: -74.050, strata: 6, landUse: "Residencial" },
+    { name: "Usaquén", comuna: "Usaquén", lat: 4.698, lng: -74.030, strata: 6, landUse: "Mixto" },
+    { name: "Cedritos", comuna: "Usaquén", lat: 4.725, lng: -74.045, strata: 4, landUse: "Residencial" },
+    { name: "Suba Centro", comuna: "Suba", lat: 4.743, lng: -74.085, strata: 3, landUse: "Mixto" },
+    { name: "Niza", comuna: "Suba", lat: 4.708, lng: -74.070, strata: 5, landUse: "Residencial" },
+    { name: "Engativá Centro", comuna: "Engativá", lat: 4.705, lng: -74.110, strata: 3, landUse: "Residencial" },
+    { name: "Normandía", comuna: "Engativá", lat: 4.665, lng: -74.110, strata: 4, landUse: "Residencial" },
+    { name: "Fontibón Centro", comuna: "Fontibón", lat: 4.673, lng: -74.143, strata: 3, landUse: "Mixto" },
+    { name: "Modelia", comuna: "Fontibón", lat: 4.655, lng: -74.125, strata: 4, landUse: "Residencial" },
+    { name: "Kennedy Central", comuna: "Kennedy", lat: 4.630, lng: -74.155, strata: 3, landUse: "Comercial" },
+    { name: "Castilla", comuna: "Kennedy", lat: 4.650, lng: -74.145, strata: 3, landUse: "Residencial" },
+    { name: "Patio Bonito", comuna: "Kennedy", lat: 4.640, lng: -74.175, strata: 2, landUse: "Residencial" },
+    { name: "Bosa Centro", comuna: "Bosa", lat: 4.608, lng: -74.195, strata: 2, landUse: "Mixto" },
+    { name: "Ciudad Bolívar (Arborizadora)", comuna: "Ciudad Bolívar", lat: 4.580, lng: -74.165, strata: 1, landUse: "Residencial" },
+    { name: "San Francisco", comuna: "Ciudad Bolívar", lat: 4.570, lng: -74.155, strata: 1, landUse: "Residencial" },
+    { name: "Usme Centro", comuna: "Usme", lat: 4.530, lng: -74.115, strata: 1, landUse: "Rural" },
+    { name: "Teusaquillo", comuna: "Teusaquillo", lat: 4.630, lng: -74.070, strata: 4, landUse: "Institucional" },
+    { name: "Salitre Greco", comuna: "Teusaquillo", lat: 4.650, lng: -74.100, strata: 4, landUse: "Residencial" },
+    { name: "La Candelaria", comuna: "La Candelaria", lat: 4.596, lng: -74.074, strata: 3, landUse: "Institucional" },
+    { name: "Las Nieves", comuna: "Santa Fe", lat: 4.605, lng: -74.070, strata: 3, landUse: "Comercial" },
+    { name: "San Victorino", comuna: "Santa Fe", lat: 4.600, lng: -74.080, strata: 2, landUse: "Comercial" },
+    { name: "Tunjuelito", comuna: "Tunjuelito", lat: 4.590, lng: -74.135, strata: 2, landUse: "Industrial" }
+];
+
+const findClosestBarrio = (lat: number, lng: number, barrios: BarrioDefinition[]): BarrioDefinition => {
+    let closest = barrios[0];
     let minDist = Infinity;
-    for (const b of DETAILED_BARRIOS) {
+    for (const b of barrios) {
         const d = Math.pow(b.lat - lat, 2) + Math.pow(b.lng - lng, 2);
         if (d < minDist) {
             minDist = d;
@@ -426,7 +580,7 @@ const getVoteBreakdownFromRecord = (counts: Record<string, number>, total: numbe
         .slice(0, 3);
 };
 
-const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, centroidLng: number}, polygon: [number, number][], index: number, normalizedDensity: number): ZoneData => {
+const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, centroidLng: number}, polygon: [number, number][], index: number, normalizedDensity: number, city: City): ZoneData => {
   const points = node.points;
   const safeCount = points.length || 1; 
   
@@ -459,7 +613,8 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     votingCongressCounts[p.votingCongress] = (votingCongressCounts[p.votingCongress] || 0) + 1;
   }
 
-  const realBarrio = findClosestBarrio(node.centroidLat, node.centroidLng);
+  const barrios = city === 'Bogota' ? BOGOTA_BARRIOS : MEDELLIN_BARRIOS;
+  const realBarrio = findClosestBarrio(node.centroidLat, node.centroidLng, barrios);
 
   const dominantInterest = points[0]?.topInterest || SocialInterest.Sports;
   const dominantEducation = points[0]?.educationLevel || EducationLevel.Secondary;
@@ -481,6 +636,14 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
   const assemblyBreakdown = getVoteBreakdownFromRecord(votingAssemblyCounts, points.length);
   const congressBreakdown = getVoteBreakdownFromRecord(votingCongressCounts, points.length);
 
+  const address = city === 'Bogota'
+      ? estimateAddressBogota(node.centroidLat, node.centroidLng)
+      : estimateAddressMedellin(node.centroidLat, node.centroidLng);
+
+  const postalCode = city === 'Bogota'
+      ? estimatePostalCodeBogota(realBarrio.comuna)
+      : estimatePostalCodeMedellin(realBarrio.comuna);
+
   return {
     id: `z-${index}`,
     locationName: realBarrio.comuna,
@@ -492,8 +655,8 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
     // PRECISION METADATA
     cardinalLimits: generatePolygonLimits(polygon),
     geoContext: `${realBarrio.comuna} - Zona ${realBarrio.landUse}`,
-    address: estimateAddressMedellin(node.centroidLat, node.centroidLng),
-    postalCode: estimatePostalCode(realBarrio.comuna),
+    address: address,
+    postalCode: postalCode,
     landUseType: realBarrio.landUse,
 
     density: normalizedDensity,
@@ -526,11 +689,12 @@ const aggregateClusterData = (node: {points: ZoneData[], centroidLat: number, ce
 
 // --- DATA GENERATION (Using Detailed Barrios) ---
 
-export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] => {
+const generateCityData = (city: City, totalPoints: number): ZoneData[] => {
   const data: ZoneData[] = [];
-  const pointsPerBarrio = Math.floor(totalPoints / DETAILED_BARRIOS.length);
+  const barrios = city === 'Bogota' ? BOGOTA_BARRIOS : MEDELLIN_BARRIOS;
+  const pointsPerBarrio = Math.floor(totalPoints / barrios.length);
 
-  DETAILED_BARRIOS.forEach((barrio, bIndex) => {
+  barrios.forEach((barrio, bIndex) => {
     // Generate points around the specific barrio centroid
     for (let i = 0; i < pointsPerBarrio; i++) {
       
@@ -565,7 +729,9 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
       const employmentRate = Math.min(0.99, Math.max(0.35, baseEmployment + (Math.random() - 0.5) * 0.2));
       
       // Politics
-      const politics = getPoliticalProfile(strata, age, barrio.comuna);
+      const politics = city === 'Bogota'
+          ? getPoliticalProfileBogota(strata, age, barrio.comuna)
+          : getPoliticalProfileMedellin(strata, age, barrio.comuna);
 
       const pointPopulation = 95 + Math.floor(Math.random() * 15); 
 
@@ -610,7 +776,19 @@ export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] =>
   });
 
   return data;
+}
+
+export const generateMedellinData = (totalPoints: number = 26000): ZoneData[] => {
+    return generateCityData('Medellin', totalPoints);
 };
+
+export const generateBogotaData = (totalPoints: number = 26000): ZoneData[] => {
+    return generateCityData('Bogota', totalPoints);
+};
+
+export const generateData = (city: City, totalPoints: number = 26000): ZoneData[] => {
+    return generateCityData(city, totalPoints);
+}
 
 // --- K-D TREE RECURSION (PRESERVED) ---
 
@@ -658,7 +836,7 @@ const buildKDTreeClusters = (
   ];
 };
 
-export const processKDTree = (rawPoints: ZoneData[], depth: number = 8): ZoneData[] => {
+export const processKDTree = (rawPoints: ZoneData[], depth: number = 8, city: City = 'Medellin'): ZoneData[] => {
   let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
   rawPoints.forEach(p => {
     if (p.lat < minLat) minLat = p.lat;
@@ -700,6 +878,6 @@ export const processKDTree = (rawPoints: ZoneData[], depth: number = 8): ZoneDat
 
   return intermediateZones.map(z => {
       const normalizedDensity = Math.min(1, Math.sqrt(z.rawDensity) / Math.sqrt(maxDensity));
-      return aggregateClusterData(z.cluster, z.polygon, z.i, normalizedDensity);
+      return aggregateClusterData(z.cluster, z.polygon, z.i, normalizedDensity, city);
   });
 };

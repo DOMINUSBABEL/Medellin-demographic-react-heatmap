@@ -17,6 +17,7 @@ interface MapVisualizerProps {
   activeLayer: MapLayer;
   onZoneSelect: (zone: ZoneData | null) => void;
   selectedZone: ZoneData | null;
+  center: [number, number];
 }
 
 const getColor = (zone: ZoneData, layer: MapLayer): string => {
@@ -54,6 +55,11 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
             case PoliticalParty.Independientes: return '#eab308'; // Yellow
             case PoliticalParty.Pacto: return '#be123c'; // Red
             case PoliticalParty.Centro: return '#10b981'; // Green
+            // Bogota
+            case PoliticalParty.Galan: return '#ef4444'; // Red (Nuevo Liberalismo)
+            case PoliticalParty.Oviedo: return '#ec4899'; // Pink
+            case PoliticalParty.Bolivar: return '#be123c'; // Pacto Red
+            case PoliticalParty.Molano: return '#1e3a8a'; // Blue
             default: return '#94a3b8';
         }
     case MapLayer.Governor:
@@ -62,6 +68,9 @@ const getColor = (zone: ZoneData, layer: MapLayer): string => {
             case GovernorVote.LuisPerez: return '#14b8a6'; // Teal
             case GovernorVote.Suarez: return '#64748b'; // Slate
             case GovernorVote.Bedoya: return '#f59e0b'; // Orange
+            // Cundinamarca
+            case GovernorVote.Rey: return '#8b5cf6'; // Violet
+            case GovernorVote.Nancy: return '#1e3a8a'; // CD Blue
             default: return '#cbd5e1';
         }
     // Shared Colors for Corporations
@@ -223,9 +232,8 @@ const MapEvents: React.FC<{ onDeselect: () => void }> = ({ onDeselect }) => {
     return null;
 }
 
-const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZoneSelect, selectedZone }) => {
+const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZoneSelect, selectedZone, center }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const center: [number, number] = [6.2442, -75.5812];
 
   // Stable callback pattern to ensure React.memo works in ZonePolygon
   const onZoneSelectRef = useRef(onZoneSelect);
