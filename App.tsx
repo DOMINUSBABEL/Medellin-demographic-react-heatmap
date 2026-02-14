@@ -1,21 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import MapVisualizer from './components/MapVisualizer';
 import Dashboard from './components/Dashboard';
 import ArxivPaper from './components/ArxivPaper';
-import { generateMedellinData, processKDTree } from './services/dataService';
 import { MapLayer, ZoneData } from './types';
 
 const App: React.FC = () => {
-  // 1. Generate Raw Points (Simulated Individuals)
-  // Target: ~2500 people per cell.
-  // Calculation: Depth 10 = 1024 cells.
-  // 1024 cells * 2550 avg pop = ~2,611,200 Total Simulated Population.
-  // Using 26,000 points with weight ~100 gives exactly this scale.
-  const rawPoints = useMemo(() => generateMedellinData(26000), []);
-  
-  // 2. Process into K-D Tree Grid (High Resolution)
-  // Depth 10 provides 1024 distinct micro-zones.
-  const adaptiveGridData = useMemo(() => processKDTree(rawPoints, 10), [rawPoints]);
+  // State for Data
+  const [adaptiveGridData, setAdaptiveGridData] = useState<ZoneData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // 1. Offload Heavy Data Generation to Web Worker
+  useEffect(() => {
+    const worker = new Worker(new URL('./services/dataWorker.ts', import.meta.url), { type: 'module' });
+
+    worker.onmessage = (e: MessageEvent) => {
+      if (e.data.type === 'DATA_READY') {
+        setAdaptiveGridData(e.data.data);
+        setLoading(false);
+      }
+    };
+
+    worker.postMessage({ type: 'START' });
+
+    return () => {
+      worker.terminate();
+    };
+  }, []);
 
   // State for Filters
   const [activeLayer, setActiveLayer] = useState<MapLayer>(MapLayer.Density);
@@ -95,6 +105,17 @@ const App: React.FC = () => {
       {/* Arxiv Preprint Modal */}
       {isPaperOpen && (
         <ArxivPaper onClose={() => setIsPaperOpen(false)} />
+      )}
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xl font-semibold text-gray-800">Generating Synthetic Population...</p>
+            <p className="text-sm text-gray-600">Simulating 2.6M inhabitants &amp; K-D Tree Clustering</p>
+          </div>
+        </div>
       )}
     </div>
   );
