@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import MapVisualizer from './components/MapVisualizer';
 import Dashboard from './components/Dashboard';
 import ArxivPaper from './components/ArxivPaper';
@@ -57,9 +57,9 @@ const App: React.FC = () => {
     });
   }, [adaptiveGridData, strataFilter, comunaFilter, spectrumFilter]);
 
-  const handleZoneSelect = (zone: ZoneData | null) => {
+  const handleZoneSelect = useCallback((zone: ZoneData | null) => {
     setSelectedZone(zone);
-  };
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-100 font-sans">

@@ -361,4 +361,4 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
   );
 };
 
-export default MapVisualizer;
+export default memo(MapVisualizer);
