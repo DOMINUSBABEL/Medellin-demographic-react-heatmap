@@ -255,6 +255,7 @@ const MapVisualizer: React.FC<MapVisualizerProps> = ({ data, activeLayer, onZone
         center={center} 
         zoom={13} 
         scrollWheelZoom={true} 
+        preferCanvas={true}
         className="h-full w-full bg-slate-900" 
       >
         <MapEffect selectedZone={selectedZone} />
